@@ -1,0 +1,41 @@
+[project]
+name = "ccs-predesign"
+version = "0.0.1"
+description = "Open pre-design tool for point-source CO2 capture: packed NaOH/KOH absorber, electrochemical solvent regeneration and techno-economics (AACE Class 5)."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Sebastián Villota" }]
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "numpy",
+    "pandas",
+    "matplotlib",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "ruff",
+    "nbclient",
+    "ipykernel",
+]
+
+[build-system]
+requires = ["uv_build>=0.12,<0.13"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+    "slow: long-running tests (golden master executes the legacy notebook)",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+extend-exclude = ["legacy"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
