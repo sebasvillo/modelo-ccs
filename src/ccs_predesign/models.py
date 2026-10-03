@@ -48,11 +48,14 @@ def _legacy_LG_grid() -> tuple[float, ...]:
 class AbsorberSpec(_Frozen):
     capture_target: float = Field(0.90, gt=0, lt=1)
     packing_name: str = "pall_ring_25mm"
-    max_height_m: float = Field(30.0, gt=0)
-    dz_m: float = Field(0.02, gt=0)
+    max_height_m: float = Field(30.0, gt=0, le=100.0)
+    dz_m: float = Field(0.02, ge=0.005, le=1.0, description="integration step")
     flood_fraction: float = Field(0.60, gt=0, lt=1)
     LG_grid_vol: tuple[float, ...] = Field(
-        default_factory=_legacy_LG_grid, description="L/G scan [m3 liquid / m3 actual gas]"
+        default_factory=_legacy_LG_grid,
+        min_length=1,
+        max_length=100,
+        description="L/G scan [m3 liquid / m3 actual gas]",
     )
     objective: Literal["min_total_power", "min_height"] = "min_total_power"
     pump_eff: float = Field(0.70, gt=0, le=1)
@@ -131,6 +134,7 @@ class AbsorberResult(_Frozen):
     G_flux_mol_m2_s: float = Field(description="gas molar flux G/A_col")
     c_tot_mol_m3: float = Field(description="gas molar concentration P/(R·T)")
     NTU: float = Field(description="gas-phase transfer units over the packed height")
+    KGa_mean_1_s: float = Field(description="height-averaged K_G·a_e = NTU·G''/(c_tot·H)")
     L_mol_s: float = Field(description="liquid molar flow, water-proxy molar mass")
     rho_g_kg_m3: float
     rho_l_kg_m3: float
@@ -212,14 +216,70 @@ class CellResult(_Frozen):
     CO2_slip_mol_s: float
 
 
-class CaseResult(_Frozen):
-    absorber: AbsorberDesign
-    cell: CellResult
+class DesignCosts(_Frozen):
+    """Output of tea.design_costs for one design."""
+
     P_total_W: float
     CO2_captured_t_y: float
     CO2_stack_t_y: float
     CO2_product_t_y: float
     E_cell_kWh_t: float
+    E_total_kWh_t: float
+    capex_column_usd: float
+    capex_cell_usd: float
+    capex_blower_usd: float
+    capex_pump_usd: float
+    capex_total_usd: float
+    annualized_capex_usd_y: float
+    opex_fixed_usd_y: float
+    opex_electricity_usd_y: float
+    opex_solvent_usd_y: float
+    opex_water_chem_usd_y: float
+    opex_total_usd_y: float
+    LCOC_usd_t: float
+    indirect_kgCO2e_y: float
+    indirect_tCO2e_y: float
+    indirect_kgCO2e_t: float
+
+
+class CaseResult(_Frozen):
+    absorber: AbsorberDesign
+    cell: CellResult
+    costs: DesignCosts
+    P_total_W: float
+    CO2_captured_t_y: float
+    CO2_stack_t_y: float
+    CO2_product_t_y: float
+    E_cell_kWh_t: float
+
+
+class ExplainedValue(_Frozen):
+    """One output with the equation that produced it and the values substituted into it."""
+
+    key: str
+    value: float
+    unit: str
+    equation_id: str
+    inputs: dict[str, float] = Field(description="symbol key (equations.SYMBOLS) -> value")
+
+
+class Profiles(_Frozen):
+    z_m: tuple[float, ...]
+    yCO2: tuple[float, ...]
+    OH_mol_m3: tuple[float, ...]
+    T_liquid_K: tuple[float, ...]
+    KGa_1_s: tuple[float, ...]
+
+
+class CaseResponse(_Frozen):
+    """What the API returns for one case (CLAUDE.md rule 9)."""
+
+    model_version: str
+    errata_id: str
+    feasible: bool
+    warnings: tuple[str, ...]
+    outputs: tuple[ExplainedValue, ...]
+    profiles: Profiles
 
 
 class ColumnCapex(_Frozen):

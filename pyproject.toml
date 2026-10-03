@@ -13,6 +13,8 @@ dependencies = [
     "matplotlib",
     "pydantic>=2.13.5",
     "scipy>=1.18.1",
+    "fastapi>=0.142.2",
+    "uvicorn>=0.54.0",
 ]
 
 [dependency-groups]
@@ -22,6 +24,7 @@ dev = [
     "nbclient",
     "ipykernel",
     "pint>=0.26.1",
+    "httpx2>=2.13.1",
 ]
 
 [build-system]
@@ -30,6 +33,7 @@ build-backend = "uv_build"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 addopts = "-ra --strict-markers"
 markers = [
     "slow: long-running tests (golden master executes the legacy notebook)",

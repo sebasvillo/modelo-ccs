@@ -50,7 +50,8 @@ def simulate_absorber(
     within max_height_m, the column is rated at that height by shooting on the gas outlet.
     Ha, E, KGa and y* follow the local liquid composition (audit §4, errata E-004/E-006).
 
-    Equations: gas.ideal_density, solvent.heat_of_absorption, kinetics.ionic_strength,
+    Equations: absorber.height, absorber.capture, gas.ideal_density, solvent.heat_of_absorption,
+    kinetics.ionic_strength,
         kinetics.e_infinite, absorber.two_film, absorber.ntu_step, absorber.hydroxide_balance,
         absorber.energy_balance, absorber.equilibrium, absorber.pump_power,
         absorber.blower_power.
@@ -333,6 +334,7 @@ def simulate_absorber(
         G_flux_mol_m2_s=G_flux,
         c_tot_mol_m3=c_tot,
         NTU=ntu_total,
+        KGa_mean_1_s=ntu_total * G_flux / (c_tot * height_m),
         L_mol_s=L_mol_s,
         rho_g_kg_m3=rho_g,
         rho_l_kg_m3=rho_l,
@@ -345,10 +347,10 @@ def simulate_absorber(
         wetting_fraction=top_liquid[6] / pk.a_spec_m2_m3,
         Ha=prof["Ha"][-1],
         E=prof["E"][-1],
-        H_cc_CO2=H_cc,
-        k1_pseudo_1_s=k1_pseudo,
+        H_cc_CO2=top_liquid[4],
+        k1_pseudo_1_s=kinetics.k2_pohorecki_moniuk_m3_mol_s(T_L_in, solv.NaOH_M) * OH_mol_m3,
         D_g_m2_s=props["Dg"],
-        D_l_m2_s=props["Dl"],
+        D_l_m2_s=top_liquid[3],
         ReG=props["ReG"],
         ReL=props["ReL"],
         ScG=props["ScG"],

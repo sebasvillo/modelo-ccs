@@ -35,6 +35,16 @@ uv run pytest -q -m "not slow"
 uv run ruff check
 ```
 
+## API
+
+```bash
+uv run uvicorn api.main:app --reload   # http://127.0.0.1:8000/docs
+```
+
+`POST /v1/case` takes a `CaseInput` (send `{}` for the default case) and returns every headline
+number with the id of its equation and the values substituted into it, plus warnings and column
+profiles. `GET /v1/equations` serves the equation catalog.
+
 ## Equations
 
 Every equation the model uses, with its meaning (ES/EN), symbols and units, provenance
