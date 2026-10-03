@@ -1,9 +1,9 @@
-"""Integrated case: absorber design + cell sizing + annual figures."""
+"""Integrated case: absorber design + cell sizing + costs + annual figures."""
 
 from .absorber import design_absorber_by_grid
 from .cell import electrochemical_regeneration
-from .models import CaseInput, CaseResult
-from .tea import annual_t_from_mol_s
+from .models import CaseInput, CaseResult, DesignCosts
+from .tea import annual_t_from_mol_s, design_costs
 
 
 def run_case(inp: CaseInput) -> CaseResult:
@@ -16,11 +16,23 @@ def run_case(inp: CaseInput) -> CaseResult:
     cell = electrochemical_regeneration(
         best.CO2_captured_mol_s, inp.solvent.NaOH_M, inp.cell, electrons_per_CO2=best.OH_per_CO2
     )
+    costs = design_costs(
+        best.D_col_m,
+        best.height_m,
+        best.blower_power_W,
+        best.pump_power_W,
+        best.CO2_captured_mol_s,
+        best.CO2_out_mol_s,
+        cell,
+        inp.gas.P_bar,
+        inp.tea,
+    )
     hours = inp.tea.hours_per_year
     t_per_hour = annual_t_from_mol_s(best.CO2_captured_mol_s, 1.0)
     return CaseResult(
         absorber=design,
         cell=cell,
+        costs=DesignCosts(**costs),
         P_total_W=best.blower_power_W + best.pump_power_W + cell.P_cell_W,
         CO2_captured_t_y=annual_t_from_mol_s(best.CO2_captured_mol_s, hours),
         CO2_stack_t_y=annual_t_from_mol_s(best.CO2_out_mol_s, hours),
