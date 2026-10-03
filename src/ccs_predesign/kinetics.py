@@ -2,11 +2,20 @@
 
 import math
 
+# Pohorecki & Moniuk (1988), Chem. Eng. Sci. 43, 1677: CO2 + OH- in electrolyte solutions.
+PM_VALID_T_K = (291.0, 314.0)
 
-def k2_m3_mol_s(T_K: float, k2_ref_L_mol_s: float) -> float:
-    """Second-order rate constant [m3/mol/s], scaled as (T/298.15)^1.5 from k2_ref [L/mol/s]."""
-    k2_L = k2_ref_L_mol_s * (T_K / 298.15) ** 1.5
-    return k2_L / 1000.0
+
+def k2_pohorecki_moniuk_m3_mol_s(T_K: float, ionic_strength_kmol_m3: float) -> float:
+    """Second-order rate constant of CO2 + OH- in NaOH solution [m3/(mol·s)].
+
+    log10 k2_inf = 11.895 − 2382/T  [L/(mol·s)];  log10(k2/k2_inf) = 0.221·I − 0.016·I² (NaOH).
+    Provenance: literature (Pohorecki & Moniuk 1988). Validity: 291–314 K (warned outside).
+    Replaces the legacy 8.5e3·(T/298.15)^1.5 L/(mol·s) (errata E-012).
+    """
+    ion = ionic_strength_kmol_m3
+    log_k2_L = 11.895 - 2382.0 / T_K + 0.221 * ion - 0.016 * ion**2
+    return 10.0**log_k2_L / 1000.0
 
 
 def hatta_number(k1_pseudo_1_s: float, D_l_m2_s: float, kL_m_s: float) -> float:

@@ -57,11 +57,10 @@ def test_gas_properties(ns, T, P):
 
 
 @pytest.mark.parametrize(("T", "C"), list(itertools.product(T_K, NAOH_M)))
-def test_solvent_and_kinetics(ns, T, C):
+def test_solvent_properties(ns, T, C):
     assert solvent.viscosity_Pa_s(T, C) == ns["liquid_viscosity_Pa_s"](T, C)
     assert solvent.diffusivity_CO2_m2_s(T, C) == ns["liquid_diffusivity_CO2_m2s"](T, C)
     assert solvent.density_kg_m3(T, C) == ns["liquid_density_kgm3"](T, C)
-    assert kinetics.k2_m3_mol_s(T, 8.5e3) == ns["reaction_rate_constant_m3mol_s"](T)
 
 
 @pytest.mark.parametrize("Ha", [1e-6, 0.3, 2.0, 31.3, 49.9, 50.0, 400.0])
