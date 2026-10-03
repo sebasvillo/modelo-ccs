@@ -1,4 +1,8 @@
-"""NaOH solution properties (simplified correlations from the legacy model)."""
+"""NaOH solution properties: legacy simplified correlations and CO2 solubility."""
+
+import math
+
+from .constants import R_J_molK
 
 
 def viscosity_Pa_s(T_K: float, C_NaOH_M: float) -> float:
@@ -17,3 +21,55 @@ def diffusivity_CO2_m2_s(T_K: float, C_NaOH_M: float) -> float:
 def density_kg_m3(T_K: float, C_NaOH_M: float) -> float:
     """Approximate density of NaOH solution near 1–2 M."""
     return 1000.0 + 24.0 * C_NaOH_M - 0.30 * (T_K - 298.15)
+
+
+# CO2 solubility in pure water (Sander 2015, Atmos. Chem. Phys. 15, 4399, recommended value).
+HCP_CO2_WATER_298_mol_m3Pa = 3.3e-4
+HCP_CO2_dlnH_d1T_K = 2400.0
+
+# Weisenberger & Schumpe (1996), AIChE J. 42, 298: ion-specific h_i [m3/kmol] and the
+# gas-specific parameter of CO2, h_G = h_G0 + h_T·(T − 298.15 K).
+SCHUMPE_H_ION_m3_kmol = {
+    "Na+": 0.1143,
+    "K+": 0.0922,
+    "OH-": 0.0839,
+    "HCO3-": 0.0967,
+    "CO3--": 0.1423,
+}
+SCHUMPE_HG0_CO2_m3_kmol = -0.0172
+SCHUMPE_HT_CO2_m3_kmolK = -0.338e-3
+
+
+def henry_cp_CO2_water_mol_m3Pa(T_K: float) -> float:
+    """CO2 solubility in water H_cp = c_L/p [mol/(m3·Pa)], van 't Hoff form around 298.15 K.
+
+    Provenance: literature (Sander 2015). Validity: about 273–353 K.
+    """
+    return HCP_CO2_WATER_298_mol_m3Pa * math.exp(HCP_CO2_dlnH_d1T_K * (1.0 / T_K - 1.0 / 298.15))
+
+
+def salting_out_log10(T_K: float, ions_kmol_m3: dict[str, float]) -> float:
+    """Sechenov term log10(H_cp,water / H_cp,solution) = Σ (h_i + h_G)·c_i.
+
+    Provenance: literature (Weisenberger & Schumpe 1996). Validity: 273–363 K, ionic strength
+    up to about 5 kmol/m3.
+    """
+    h_G = SCHUMPE_HG0_CO2_m3_kmol + SCHUMPE_HT_CO2_m3_kmolK * (T_K - 298.15)
+    return sum((SCHUMPE_H_ION_m3_kmol[ion] + h_G) * c for ion, c in ions_kmol_m3.items())
+
+
+def henry_cc_CO2(T_K: float, ions_kmol_m3: dict[str, float]) -> float:
+    """Dimensionless Henry constant H_cc = c_G/c_L of CO2 in the electrolyte solution.
+
+    H_cc = 1/(H_cp·R·T), with H_cp corrected for salting-out (audit §3, errata E-003).
+    """
+    H_cp = henry_cp_CO2_water_mol_m3Pa(T_K) * 10.0 ** (-salting_out_log10(T_K, ions_kmol_m3))
+    return 1.0 / (H_cp * R_J_molK * T_K)
+
+
+def naoh_ions_kmol_m3(C_NaOH_M: float) -> dict[str, float]:
+    """Fresh NaOH solution: [Na+] = [OH-] = C (mol/L = kmol/m3).
+
+    LEGACY(audit §4): carbonate formed along the column is not accounted for yet.
+    """
+    return {"Na+": C_NaOH_M, "OH-": C_NaOH_M}

@@ -72,14 +72,14 @@ def mass_transfer_coefficients(
     uL_m_s: float,
     packing: Packing,
     C_NaOH_M: float,
-    liquid_resistance_factor: float,
+    henry_cc: float,
     E: float = 1.0,
 ) -> dict[str, float]:
     """Film model: kG, kL and the overall volumetric coefficient KGa [1/s].
 
     uG_m_s and uL_m_s are superficial velocities in the actual column (audit §2, E-002).
-    LEGACY(audit §3): the liquid resistance is scaled by an undocumented tuning factor
-    instead of the Henry constant.
+    Overall gas-side coefficient 1/K_G = 1/k_G + H_cc/(E·k_L), with H_cc = c_G/c_L the
+    dimensionless Henry constant (two-film theory; audit §3, errata E-003).
     """
     rho_g = gas.density_ideal_kg_m3(T_K, P_Pa, comp_gas)
     mu_g = gas.viscosity_sutherland_air_Pa_s(T_K)
@@ -107,7 +107,7 @@ def mass_transfer_coefficients(
     wet = wetting_fraction(uL, packing)
     a_eff = a_spec * wet
 
-    KG = 1.0 / (1.0 / max(kG, 1e-12) + liquid_resistance_factor / max(kL * E, 1e-12))
+    KG = 1.0 / (1.0 / max(kG, 1e-12) + henry_cc / max(kL * E, 1e-12))
     KGa = KG * a_eff
 
     return {

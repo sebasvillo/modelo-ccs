@@ -44,9 +44,6 @@ class AbsorberSpec(_Frozen):
     capture_target: float = Field(0.90, gt=0, lt=1)
     packing_name: str = "pall_ring_25mm"
     H_eq: float = Field(0.04, ge=0, description="LEGACY: equilibrium slope y* = H_eq·x")
-    liquid_resistance_factor: float = Field(
-        0.001, gt=0, description="LEGACY(audit §3): tuning factor on the liquid resistance"
-    )
     k2_ref_L_mol_s: float = Field(8.5e3, gt=0, description="CO2 + OH- rate constant at 25 °C")
     max_height_m: float = Field(30.0, gt=0)
     dz_m: float = Field(0.02, gt=0)
@@ -131,6 +128,7 @@ class AbsorberResult(_Frozen):
     wetting_fraction: float
     Ha: float
     E: float
+    H_cc_CO2: float = Field(description="dimensionless Henry constant c_G/c_L (salting-out)")
     k1_pseudo_1_s: float
     D_g_m2_s: float
     D_l_m2_s: float
