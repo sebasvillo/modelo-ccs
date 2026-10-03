@@ -73,9 +73,14 @@ def simulate_absorber(
     uG = Qg_m3_s / A_col
     uL = Ql_m3_s / A_col
 
-    k2 = kinetics.k2_m3_mol_s(T_K, spec.k2_ref_L_mol_s)
     OH_mol_m3 = solv.NaOH_M * 1000.0
-    k1_pseudo = k2 * OH_mol_m3
+
+    def k2_local(OH: float) -> float:
+        """k2 at the local ionic strength I = ½Σc·z² = ½(3C − [OH-]) with Na+, OH-, CO3--."""
+        I_kmol_m3 = 0.5 * (3.0 * solv.NaOH_M - OH / 1000.0)
+        return kinetics.k2_pohorecki_moniuk_m3_mol_s(T_K, I_kmol_m3)
+
+    k1_pseudo = k2_local(OH_mol_m3) * OH_mol_m3
 
     H_cc = solvent.henry_cc_CO2(T_K, solvent.naoh_ions_kmol_m3(solv.NaOH_M))
 
@@ -116,7 +121,7 @@ def simulate_absorber(
         if OH <= 0.0:  # no hydroxide left: no reaction and no driving force
             KG = 1.0 / (1.0 / kG + H_cc / kL)
             return OH, 0.0, 1.0, KG * a_eff, y
-        Ha_loc = kinetics.hatta_number(k2 * OH, Dl, kL)
+        Ha_loc = kinetics.hatta_number(k2_local(OH) * OH, Dl, kL)
         CO2_i = y * c_tot / H_cc  # conservative: gas-film resistance neglected for E_inf
         E_inf = kinetics.enhancement_infinite(D_OH, OH, Dl, CO2_i, nu=OH_PER_CO2)
         E_loc = kinetics.enhancement_factor_decoursey(Ha_loc, E_inf)
@@ -251,6 +256,12 @@ def simulate_absorber(
         warnings.append(
             f"capture target not reached within max_height_m = {spec.max_height_m:g} m "
             f"(capture {(y_in - y_out) / y_in:.1%})"
+        )
+    T_lo, T_hi = kinetics.PM_VALID_T_K
+    if not T_lo <= T_K <= T_hi:
+        warnings.append(
+            f"k2 (Pohorecki & Moniuk 1988) extrapolated: T = {T_K:.1f} K "
+            f"outside {T_lo:g}–{T_hi:g} K"
         )
     if capacity_mol_s < G_mol_s * (y_in - y_out_target):
         warnings.append(

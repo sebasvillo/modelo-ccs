@@ -43,7 +43,6 @@ def _legacy_LG_grid() -> tuple[float, ...]:
 class AbsorberSpec(_Frozen):
     capture_target: float = Field(0.90, gt=0, lt=1)
     packing_name: str = "pall_ring_25mm"
-    k2_ref_L_mol_s: float = Field(8.5e3, gt=0, description="CO2 + OH- rate constant at 25 °C")
     max_height_m: float = Field(30.0, gt=0)
     dz_m: float = Field(0.02, gt=0)
     flood_fraction: float = Field(0.60, gt=0, lt=1)
