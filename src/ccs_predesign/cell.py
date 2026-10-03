@@ -9,7 +9,10 @@ from .models import CellResult, CellSpec
 
 
 def tna_empirical(C_NaOH_mol_m3: float, j_A_m2: float) -> float:
-    """Empirical Na+ transference number vs NaOH concentration and current density."""
+    """Empirical Na+ transference number vs NaOH concentration and current density.
+
+    Equations: cell.transference.
+    """
     C_M = C_NaOH_mol_m3 / 1000.0
     j_mA_cm2 = j_A_m2 * 1e-1
     t = 0.70 + 0.20 * (1.0 - math.exp(-4.0 * C_M))
@@ -18,13 +21,19 @@ def tna_empirical(C_NaOH_mol_m3: float, j_A_m2: float) -> float:
 
 
 def voltage_from_current_density_V(j_A_m2: float) -> float:
-    """Inverse of the fitted j–V curve j[mA/cm2] = 604.92445·exp(V/3.02912) − 767.22373."""
+    """Inverse of the fitted j–V curve j[mA/cm2] = 604.92445·exp(V/3.02912) − 767.22373.
+
+    Equations: cell.jv_curve.
+    """
     j_mA_cm2 = j_A_m2 * 1e-1
     return 3.02912 * math.log((j_mA_cm2 + 767.22373) / 604.92445)
 
 
 def energy_per_mol_CO2_J(V_cell_V: float, tna: float, electrons_per_CO2: float) -> float:
-    """Electrical energy per mol of CO2 regenerated: n_e·F·V/t_Na [J/mol] (Faraday)."""
+    """Electrical energy per mol of CO2 regenerated: n_e·F·V/t_Na [J/mol] (Faraday).
+
+    Equations: cell.energy.
+    """
     return electrons_per_CO2 * FARADAY_C_mol * V_cell_V / max(tna, 1e-12)
 
 
@@ -36,6 +45,8 @@ def electrochemical_regeneration(
     Each mol of OH- regenerated needs one Na+ across the membrane, i.e. one Faraday divided by
     the Na+ transference number: I = n_e·F·n_CO2/t_Na. n_e is the OH- consumed per CO2 in the
     absorber: 2 for the carbonate route, 1 for bicarbonate (audit §6, errata E-008).
+
+    Equations: cell.faraday.
     """
     if electrons_per_CO2 not in (1.0, 2.0):
         raise ValueError(

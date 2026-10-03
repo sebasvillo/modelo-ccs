@@ -27,6 +27,8 @@ def ntu_increment(
     c_tot = P/(R·T) in mol/m3 and G'' the gas molar flux in mol/(m2·s). Constant G'' is assumed
     (dilute-gas approximation). Provenance: theory (film model, e.g. Seader & Henley,
     Separation Process Principles, ch. 6). Fixes audit §1 (errata E-001).
+
+    Equations: absorber.ntu_step.
     """
     return KGa_1_s * c_tot_mol_m3 * dz_m / G_flux_mol_m2_s
 
@@ -47,6 +49,11 @@ def simulate_absorber(
     Design mode integrates up from the rich end until the target is met; if it is not met
     within max_height_m, the column is rated at that height by shooting on the gas outlet.
     Ha, E, KGa and y* follow the local liquid composition (audit §4, errata E-004/E-006).
+
+    Equations: gas.ideal_density, solvent.heat_of_absorption, kinetics.ionic_strength,
+        kinetics.e_infinite, absorber.two_film, absorber.ntu_step, absorber.hydroxide_balance,
+        absorber.energy_balance, absorber.equilibrium, absorber.pump_power,
+        absorber.blower_power.
     """
     pk = packing.PACKINGS[spec.packing_name]
     T_K = gas.c_to_k(flue.T_C)

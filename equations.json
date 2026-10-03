@@ -1,0 +1,1800 @@
+{
+  "equations": [
+    {
+      "id": "gas.saturation_pressure",
+      "title_es": "Presión de saturación del agua",
+      "title_en": "Water saturation pressure",
+      "latex": "\\log_{10} p_{sat}\\,[\\mathrm{mmHg}] = 8.07131 - \\dfrac{1730.63}{T\\,[^\\circ\\mathrm{C}] + 233.426}",
+      "meaning_es": "Cuánta agua puede llevar el gas a su temperatura (ecuación de Antoine).",
+      "meaning_en": "How much water vapour the gas can carry at its temperature (Antoine equation).",
+      "symbols": [
+        "p_sat",
+        "T"
+      ],
+      "provenance": "literature",
+      "reference": "antoine",
+      "validity": "1–100 °C",
+      "implemented_by": [
+        "gas:sat_vapor_pressure_water_Pa"
+      ],
+      "errata": []
+    },
+    {
+      "id": "gas.wet_composition",
+      "title_es": "Gas húmedo saturado",
+      "title_en": "Saturated wet gas",
+      "latex": "y_{H_2O} = \\min\\!\\left(0.25,\\ \\dfrac{p_{sat}}{P}\\right),\\qquad y_{i,wet} = y_{i,dry}\\,(1 - y_{H_2O})",
+      "meaning_es": "El gas se satura de agua a la temperatura del absorbedor y diluye al CO₂ (tope de 25 % de agua).",
+      "meaning_en": "The gas is saturated with water at absorber temperature, diluting the CO₂ (water capped at 25 %).",
+      "symbols": [
+        "y_H2O",
+        "p_sat",
+        "P",
+        "y"
+      ],
+      "provenance": "theory",
+      "reference": null,
+      "validity": null,
+      "implemented_by": [
+        "gas:wet_composition_from_dry"
+      ],
+      "errata": []
+    },
+    {
+      "id": "gas.molar_flow",
+      "title_es": "Flujo molar desde Nm³/h",
+      "title_en": "Molar flow from Nm³/h",
+      "latex": "\\dot n = Q_N \\cdot \\dfrac{44.615}{3600}",
+      "meaning_es": "Un metro cúbico normal (0 °C, 1 atm) contiene 44.615 mol de gas ideal.",
+      "meaning_en": "One normal cubic metre (0 °C, 1 atm) holds 44.615 mol of ideal gas.",
+      "symbols": [
+        "n_dot",
+        "Q_N"
+      ],
+      "provenance": "theory",
+      "reference": null,
+      "validity": null,
+      "implemented_by": [
+        "gas:dry_molar_flow_mol_s"
+      ],
+      "errata": []
+    },
+    {
+      "id": "gas.ideal_density",
+      "title_es": "Densidad de gas ideal",
+      "title_en": "Ideal-gas density",
+      "latex": "\\rho_G = \\dfrac{P\\,M}{R\\,T},\\qquad c_{tot} = \\dfrac{P}{R\\,T}",
+      "meaning_es": "Masa y moles de gas por metro cúbico, como gas ideal.",
+      "meaning_en": "Mass and moles of gas per cubic metre, as an ideal gas.",
+      "symbols": [
+        "rho_G",
+        "c_tot",
+        "P",
+        "M",
+        "R",
+        "T"
+      ],
+      "provenance": "theory",
+      "reference": null,
+      "validity": null,
+      "implemented_by": [
+        "gas:density_ideal_kg_m3",
+        "absorber:simulate_absorber"
+      ],
+      "errata": []
+    },
+    {
+      "id": "gas.viscosity",
+      "title_es": "Viscosidad del gas (Sutherland)",
+      "title_en": "Gas viscosity (Sutherland)",
+      "latex": "\\mu_G = 1.716\\times10^{-5}\\left(\\dfrac{T}{273.15}\\right)^{3/2}\\dfrac{273.15 + 111}{T + 111}",
+      "meaning_es": "Viscosidad del gas de combustión aproximado como aire.",
+      "meaning_en": "Flue-gas viscosity approximated as air.",
+      "symbols": [
+        "mu_G",
+        "T"
+      ],
+      "provenance": "literature",
+      "reference": "sutherland1893",
+      "validity": "200–600 K; flue gas ≈ air",
+      "implemented_by": [
+        "gas:viscosity_sutherland_air_Pa_s"
+      ],
+      "errata": []
+    },
+    {
+      "id": "gas.diffusivity",
+      "title_es": "Difusividad del CO₂ en el gas",
+      "title_en": "CO₂ diffusivity in the gas",
+      "latex": "D_G = 1.6\\times10^{-5}\\left(\\dfrac{T}{298.15}\\right)^{1.75}\\dfrac{101325}{P}",
+      "meaning_es": "Qué tan rápido se mueve el CO₂ por difusión en el gas; escala de Fuller en T y P.",
+      "meaning_en": "How fast CO₂ diffuses through the gas; Fuller scaling with T and P.",
+      "symbols": [
+        "D_G",
+        "T",
+        "P"
+      ],
+      "provenance": "literature",
+      "reference": "fuller1966",
+      "validity": "CO₂–air, near ambient pressure",
+      "implemented_by": [
+        "gas:diffusivity_CO2_in_air_m2_s"
+      ],
+      "errata": []
+    },
+    {
+      "id": "solvent.viscosity",
+      "title_es": "Viscosidad del solvente",
+      "title_en": "Solvent viscosity",
+      "latex": "\\mu_L = 2.414\\times10^{-5}\\cdot10^{\\,247.8/(T-140)}\\,(1 + 0.08\\,C)",
+      "meaning_es": "Viscosidad del agua (forma de Vogel) con una corrección lineal por NaOH.",
+      "meaning_en": "Water viscosity (Vogel form) with a linear NaOH correction.",
+      "symbols": [
+        "mu_L",
+        "T",
+        "C"
+      ],
+      "provenance": "own_closure",
+      "reference": "thesis",
+      "validity": "0–100 °C, C ≲ 3 mol/L",
+      "implemented_by": [
+        "solvent:viscosity_Pa_s"
+      ],
+      "errata": []
+    },
+    {
+      "id": "solvent.diffusivity_co2",
+      "title_es": "Difusividad del CO₂ en el solvente",
+      "title_en": "CO₂ diffusivity in the solvent",
+      "latex": "D_{CO_2} = \\dfrac{1.9\\times10^{-9}\\,(T/298.15)^{1.25}}{1 + 0.30\\,C}",
+      "meaning_es": "Difusividad del CO₂ disuelto; baja al subir la concentración de NaOH.",
+      "meaning_en": "Dissolved CO₂ diffusivity; decreases as NaOH concentration rises.",
+      "symbols": [
+        "D_L",
+        "T",
+        "C"
+      ],
+      "provenance": "own_closure",
+      "reference": "thesis",
+      "validity": "C ≲ 3 mol/L",
+      "implemented_by": [
+        "solvent:diffusivity_CO2_m2_s"
+      ],
+      "errata": []
+    },
+    {
+      "id": "solvent.density",
+      "title_es": "Densidad del solvente",
+      "title_en": "Solvent density",
+      "latex": "\\rho_L = 1000 + 24\\,C - 0.30\\,(T - 298.15)",
+      "meaning_es": "Densidad aproximada de la solución de NaOH.",
+      "meaning_en": "Approximate NaOH solution density.",
+      "symbols": [
+        "rho_L",
+        "C",
+        "T"
+      ],
+      "provenance": "own_closure",
+      "reference": "thesis",
+      "validity": "C ≈ 1–2 mol/L",
+      "implemented_by": [
+        "solvent:density_kg_m3"
+      ],
+      "errata": []
+    },
+    {
+      "id": "solvent.henry_water",
+      "title_es": "Solubilidad del CO₂ en agua",
+      "title_en": "CO₂ solubility in water",
+      "latex": "H^{cp}_w = 3.3\\times10^{-4}\\exp\\!\\left[2400\\left(\\dfrac{1}{T} - \\dfrac{1}{298.15}\\right)\\right]",
+      "meaning_es": "Cuánto CO₂ se disuelve en agua por cada pascal de presión parcial; baja al calentar.",
+      "meaning_en": "How much CO₂ dissolves in water per pascal of partial pressure; falls on heating.",
+      "symbols": [
+        "H_cp",
+        "T"
+      ],
+      "provenance": "literature",
+      "reference": "sander2015",
+      "validity": "273–353 K",
+      "implemented_by": [
+        "solvent:henry_cp_CO2_water_mol_m3Pa"
+      ],
+      "errata": [
+        "E-003"
+      ]
+    },
+    {
+      "id": "solvent.salting_out",
+      "title_es": "Efecto salino (Sechenov)",
+      "title_en": "Salting-out (Sechenov)",
+      "latex": "\\log_{10}\\dfrac{H^{cp}_w}{H^{cp}} = \\sum_i (h_i + h_G)\\,c_i,\\qquad h_G = -0.0172 - 3.38\\times10^{-4}(T - 298.15)",
+      "meaning_es": "Los iones disueltos (Na⁺, OH⁻, CO₃²⁻) reducen la solubilidad del CO₂.",
+      "meaning_en": "Dissolved ions (Na⁺, OH⁻, CO₃²⁻) reduce CO₂ solubility.",
+      "symbols": [
+        "H_cp",
+        "h_i",
+        "h_G",
+        "c_i",
+        "T"
+      ],
+      "provenance": "literature",
+      "reference": "weisenberger1996",
+      "validity": "273–363 K, ionic strength ≲ 5 kmol/m³",
+      "implemented_by": [
+        "solvent:salting_out_log10"
+      ],
+      "errata": [
+        "E-003"
+      ]
+    },
+    {
+      "id": "solvent.henry_cc",
+      "title_es": "Constante de Henry adimensional",
+      "title_en": "Dimensionless Henry constant",
+      "latex": "H^{cc} = \\dfrac{1}{H^{cp}\\,R\\,T}",
+      "meaning_es": "Razón entre la concentración del CO₂ en el gas y en el líquido en equilibrio.",
+      "meaning_en": "Ratio of the CO₂ concentration in gas and liquid at equilibrium.",
+      "symbols": [
+        "H_cc",
+        "H_cp",
+        "R",
+        "T"
+      ],
+      "provenance": "theory",
+      "reference": null,
+      "validity": null,
+      "implemented_by": [
+        "solvent:henry_cc_CO2"
+      ],
+      "errata": [
+        "E-003"
+      ]
+    },
+    {
+      "id": "solvent.carbonate_constants",
+      "title_es": "Equilibrios del sistema carbonato",
+      "title_en": "Carbonate system equilibria",
+      "latex": "\\log K_1 = -356.3094 - 0.06091964\\,T + \\dfrac{21834.37}{T} + 126.8339\\log T - \\dfrac{1684915}{T^2}\\quad \\log K_2 = -107.8871 - 0.03252849\\,T + \\dfrac{5151.79}{T} + 38.92561\\log T - \\dfrac{563713.9}{T^2}\\quad \\log K_w = -\\dfrac{4470.99}{T} + 6.0875 - 0.01706\\,T",
+      "meaning_es": "Constantes de disociación del ácido carbónico y del agua en función de la temperatura.",
+      "meaning_en": "Dissociation constants of carbonic acid and of water versus temperature.",
+      "symbols": [
+        "K1",
+        "K2",
+        "Kw",
+        "T"
+      ],
+      "provenance": "literature",
+      "reference": "plummer1982",
+      "validity": "K1, K2: 0–90 °C; Kw: 0–60 °C (Harned & Owen 1958); ideal solution",
+      "implemented_by": [
+        "solvent:carbonate_constants"
+      ],
+      "errata": [
+        "E-006"
+      ]
+    },
+    {
+      "id": "solvent.free_co2",
+      "title_es": "CO₂ libre en equilibrio",
+      "title_en": "Free CO₂ at equilibrium",
+      "latex": "[CO_2] = \\dfrac{K_w^2\\,[CO_3^{2-}]}{K_1\\,K_2\\,[OH^-]^2}",
+      "meaning_es": "Con mucho OH⁻ casi no queda CO₂ libre; al agotarse el OH⁻ el CO₂ libre sube rápido.",
+      "meaning_en": "With plenty of OH⁻ almost no free CO₂ remains; as OH⁻ runs out free CO₂ rises fast.",
+      "symbols": [
+        "CO2aq",
+        "Kw",
+        "CO3",
+        "K1",
+        "K2",
+        "OH"
+      ],
+      "provenance": "theory",
+      "reference": "plummer1982",
+      "validity": "ideal solution (activity coefficients = 1)",
+      "implemented_by": [
+        "solvent:free_CO2_equilibrium_mol_m3"
+      ],
+      "errata": [
+        "E-006"
+      ]
+    },
+    {
+      "id": "solvent.naoh_diffusivity",
+      "title_es": "Difusividad del NaOH",
+      "title_en": "NaOH diffusivity",
+      "latex": "D_{OH} = 2.13\\times10^{-9}\\,\\dfrac{T}{298.15}\\,\\dfrac{\\mu_w(298.15)}{\\mu_L(T, C)}",
+      "meaning_es": "Qué tan rápido llega el hidróxido a la interfase; escala de Stokes–Einstein.",
+      "meaning_en": "How fast hydroxide reaches the interface; Stokes–Einstein scaling.",
+      "symbols": [
+        "D_OH",
+        "T",
+        "mu_L"
+      ],
+      "provenance": "literature",
+      "reference": "crc",
+      "validity": "dilute to moderate NaOH",
+      "implemented_by": [
+        "solvent:diffusivity_NaOH_m2_s"
+      ],
+      "errata": [
+        "E-011"
+      ]
+    },
+    {
+      "id": "solvent.surface_tension",
+      "title_es": "Tensión superficial",
+      "title_en": "Surface tension",
+      "latex": "\\sigma = 0.2358\\,\\tau^{1.256}(1 - 0.625\\,\\tau) + 1.8\\times10^{-3}\\,C,\\qquad \\tau = 1 - T/647.096",
+      "meaning_es": "Tensión superficial del agua (IAPWS) más un aumento leve por el NaOH.",
+      "meaning_en": "Water surface tension (IAPWS) plus a slight increase from NaOH.",
+      "symbols": [
+        "sigma",
+        "T",
+        "C"
+      ],
+      "provenance": "literature",
+      "reference": "iapws2014",
+      "validity": "water 0–370 °C; NaOH term own closure",
+      "implemented_by": [
+        "solvent:surface_tension_N_m"
+      ],
+      "errata": [
+        "E-014"
+      ]
+    },
+    {
+      "id": "solvent.heat_of_absorption",
+      "title_es": "Calor de absorción",
+      "title_en": "Heat of absorption",
+      "latex": "\\Delta H_{abs} = \\Delta_f H(CO_3^{2-}) + \\Delta_f H(H_2O) - \\Delta_f H(CO_2) - 2\\,\\Delta_f H(OH^-) = -109.4\\ \\mathrm{kJ/mol}",
+      "meaning_es": "Calor liberado al convertir un mol de CO₂ gaseoso en carbonato.",
+      "meaning_en": "Heat released when one mol of gaseous CO₂ becomes carbonate.",
+      "symbols": [
+        "dH"
+      ],
+      "provenance": "literature",
+      "reference": "wagman1982",
+      "validity": "25 °C standard enthalpies",
+      "implemented_by": [
+        "absorber:simulate_absorber"
+      ],
+      "errata": [
+        "E-013"
+      ]
+    },
+    {
+      "id": "kinetics.k2",
+      "title_es": "Velocidad de reacción CO₂ + OH⁻",
+      "title_en": "CO₂ + OH⁻ reaction rate",
+      "latex": "\\log_{10} k_2^\\infty = 11.895 - \\dfrac{2382}{T},\\qquad \\log_{10}\\dfrac{k_2}{k_2^\\infty} = 0.221\\,I - 0.016\\,I^2",
+      "meaning_es": "Qué tan rápido reacciona el CO₂ con el hidróxido; sube con la temperatura y con la fuerza iónica.",
+      "meaning_en": "How fast CO₂ reacts with hydroxide; rises with temperature and ionic strength.",
+      "symbols": [
+        "k2",
+        "T",
+        "I"
+      ],
+      "provenance": "literature",
+      "reference": "pohorecki1988",
+      "validity": "291–314 K (warned outside)",
+      "implemented_by": [
+        "kinetics:k2_pohorecki_moniuk_m3_mol_s"
+      ],
+      "errata": [
+        "E-012"
+      ]
+    },
+    {
+      "id": "kinetics.ionic_strength",
+      "title_es": "Fuerza iónica local",
+      "title_en": "Local ionic strength",
+      "latex": "I = \\tfrac12\\sum c_i z_i^2 = \\tfrac12\\left(3C - [OH^-]\\right)",
+      "meaning_es": "Con Na⁺, OH⁻ y CO₃²⁻; aumenta a medida que el hidróxido se convierte en carbonato.",
+      "meaning_en": "With Na⁺, OH⁻ and CO₃²⁻; grows as hydroxide turns into carbonate.",
+      "symbols": [
+        "I",
+        "C",
+        "OH"
+      ],
+      "provenance": "theory",
+      "reference": null,
+      "validity": null,
+      "implemented_by": [
+        "absorber:simulate_absorber"
+      ],
+      "errata": [
+        "E-012"
+      ]
+    },
+    {
+      "id": "kinetics.hatta",
+      "title_es": "Número de Hatta",
+      "title_en": "Hatta number",
+      "latex": "Ha = \\dfrac{\\sqrt{k_2\\,[OH^-]\\,D_{CO_2}}}{k_L}",
+      "meaning_es": "Compara la velocidad de reacción con la de difusión en la película líquida.",
+      "meaning_en": "Compares reaction speed with diffusion speed in the liquid film.",
+      "symbols": [
+        "Ha",
+        "k2",
+        "OH",
+        "D_L",
+        "kL"
+      ],
+      "provenance": "theory",
+      "reference": "danckwerts1970",
+      "validity": null,
+      "implemented_by": [
+        "kinetics:hatta_number"
+      ],
+      "errata": []
+    },
+    {
+      "id": "kinetics.enhancement_pfo",
+      "title_es": "Factor de mejora de pseudo-primer orden",
+      "title_en": "Pseudo-first-order enhancement",
+      "latex": "E = \\dfrac{Ha}{\\tanh Ha}",
+      "meaning_es": "Cuánto acelera la reacción la absorción, si el OH⁻ sobra.",
+      "meaning_en": "How much the reaction speeds up absorption when OH⁻ is in excess.",
+      "symbols": [
+        "E",
+        "Ha"
+      ],
+      "provenance": "theory",
+      "reference": "danckwerts1970",
+      "validity": "E ≪ E∞",
+      "implemented_by": [
+        "kinetics:enhancement_factor"
+      ],
+      "errata": []
+    },
+    {
+      "id": "kinetics.e_infinite",
+      "title_es": "Límite de reacción instantánea",
+      "title_en": "Instantaneous-reaction limit",
+      "latex": "E_\\infty = 1 + \\dfrac{D_{OH}\\,[OH^-]}{\\nu\\,D_{CO_2}\\,[CO_2]_i},\\qquad [CO_2]_i = \\dfrac{y\\,c_{tot}}{H^{cc}}",
+      "meaning_es": "Máximo factor de mejora: el que permite el hidróxido que alcanza a llegar a la interfase.",
+      "meaning_en": "Largest possible enhancement: limited by the hydroxide that can reach the interface.",
+      "symbols": [
+        "E_inf",
+        "D_OH",
+        "OH",
+        "nu",
+        "D_L",
+        "CO2i",
+        "y",
+        "c_tot",
+        "H_cc"
+      ],
+      "provenance": "theory",
+      "reference": "danckwerts1970",
+      "validity": "[CO₂]_i neglects the gas film (conservative)",
+      "implemented_by": [
+        "kinetics:enhancement_infinite",
+        "absorber:simulate_absorber"
+      ],
+      "errata": [
+        "E-011"
+      ]
+    },
+    {
+      "id": "kinetics.decoursey",
+      "title_es": "Factor de mejora de DeCoursey",
+      "title_en": "DeCoursey enhancement factor",
+      "latex": "E = -\\dfrac{Ha^2}{2(E_\\infty - 1)} + \\sqrt{\\dfrac{Ha^4}{4(E_\\infty - 1)^2} + \\dfrac{E_\\infty\\,Ha^2}{E_\\infty - 1} + 1}",
+      "meaning_es": "Factor de mejora que pasa suavemente de reacción rápida (≈Ha) a instantánea (E∞).",
+      "meaning_en": "Enhancement that moves smoothly from fast (≈Ha) to instantaneous (E∞) reaction.",
+      "symbols": [
+        "E",
+        "Ha",
+        "E_inf"
+      ],
+      "provenance": "literature",
+      "reference": "decoursey1974",
+      "validity": null,
+      "implemented_by": [
+        "kinetics:enhancement_factor_decoursey"
+      ],
+      "errata": [
+        "E-011"
+      ]
+    },
+    {
+      "id": "packing.onda_wetted_area",
+      "title_es": "Área mojada (Onda)",
+      "title_en": "Wetted area (Onda)",
+      "latex": "\\dfrac{a_e}{a} = 1 - \\exp\\!\\left[-1.45\\left(\\dfrac{\\sigma_c}{\\sigma}\\right)^{0.75}\\left(\\dfrac{L}{a\\mu_L}\\right)^{0.1}\\left(\\dfrac{L^2 a}{\\rho_L^2 g}\\right)^{-0.05}\\left(\\dfrac{L^2}{\\rho_L\\sigma a}\\right)^{0.2}\\right]",
+      "meaning_es": "Qué parte del empaque queda cubierta por líquido y sirve para transferir CO₂.",
+      "meaning_en": "Fraction of the packing covered by liquid and usable for CO₂ transfer.",
+      "symbols": [
+        "a_e",
+        "a",
+        "sigma_c",
+        "sigma",
+        "L_m",
+        "mu_L",
+        "rho_L",
+        "g"
+      ],
+      "provenance": "literature",
+      "reference": "onda1968",
+      "validity": "random packings",
+      "implemented_by": [
+        "packing:onda_wetted_area_m2_m3",
+        "packing:liquid_side"
+      ],
+      "errata": [
+        "E-014"
+      ]
+    },
+    {
+      "id": "packing.onda_kl",
+      "title_es": "Coeficiente de película líquida (Onda)",
+      "title_en": "Liquid-film coefficient (Onda)",
+      "latex": "k_L\\left(\\dfrac{\\rho_L}{\\mu_L g}\\right)^{1/3} = 0.0051\\left(\\dfrac{L}{a_e\\mu_L}\\right)^{2/3}\\left(\\dfrac{\\mu_L}{\\rho_L D_{CO_2}}\\right)^{-1/2}(a\\,d_p)^{0.4}",
+      "meaning_es": "Qué tan rápido pasa el CO₂ a través de la película de líquido sin reacción.",
+      "meaning_en": "How fast CO₂ crosses the liquid film without reaction.",
+      "symbols": [
+        "kL",
+        "rho_L",
+        "mu_L",
+        "g",
+        "L_m",
+        "a_e",
+        "D_L",
+        "a",
+        "d_p"
+      ],
+      "provenance": "literature",
+      "reference": "onda1968",
+      "validity": "random packings",
+      "implemented_by": [
+        "packing:onda_kL_m_s",
+        "packing:liquid_side"
+      ],
+      "errata": [
+        "E-014"
+      ]
+    },
+    {
+      "id": "packing.onda_kg",
+      "title_es": "Coeficiente de película gaseosa (Onda)",
+      "title_en": "Gas-film coefficient (Onda)",
+      "latex": "\\dfrac{k_G}{a\\,D_G} = 5.23\\left(\\dfrac{G_m}{a\\mu_G}\\right)^{0.7}\\left(\\dfrac{\\mu_G}{\\rho_G D_G}\\right)^{1/3}(a\\,d_p)^{-2}",
+      "meaning_es": "Qué tan rápido llega el CO₂ desde el gas hasta la superficie del líquido.",
+      "meaning_en": "How fast CO₂ moves from the gas bulk to the liquid surface.",
+      "symbols": [
+        "kG",
+        "a",
+        "D_G",
+        "G_m",
+        "mu_G",
+        "rho_G",
+        "d_p"
+      ],
+      "provenance": "literature",
+      "reference": "onda1968",
+      "validity": "random packings, d_p ≥ 15 mm (2.00 instead of 5.23 below)",
+      "implemented_by": [
+        "packing:onda_kG_m_s",
+        "packing:gas_side_kG_m_s"
+      ],
+      "errata": [
+        "E-014"
+      ]
+    },
+    {
+      "id": "packing.sherwood_particle",
+      "title_es": "Sherwood tipo partícula (legacy)",
+      "title_en": "Particle-type Sherwood (legacy)",
+      "latex": "Sh = 2 + 1.10\\,Re^{n}\\,Sc^{1/3},\\quad n = 0.7\\ (\\text{gas}),\\ 0.6\\ (\\text{líquido}),\\quad k = Sh\\,D/d_h,\\ d_h = 4\\varepsilon/a",
+      "meaning_es": "Forma de Ranz–Marshall para partículas; solo se usa todavía para empaques estructurados (sin validar).",
+      "meaning_en": "Ranz–Marshall particle form; still used only for structured packings (not validated).",
+      "symbols": [
+        "kG",
+        "kL",
+        "eps",
+        "a"
+      ],
+      "provenance": "own_closure",
+      "reference": "thesis",
+      "validity": "not validated for packed columns",
+      "implemented_by": [
+        "packing:sherwood_gas",
+        "packing:sherwood_liquid",
+        "packing:liquid_film_kL"
+      ],
+      "errata": [
+        "E-014"
+      ]
+    },
+    {
+      "id": "packing.wetting_legacy",
+      "title_es": "Mojado exponencial (legacy)",
+      "title_en": "Exponential wetting (legacy)",
+      "latex": "\\dfrac{a_e}{a} = 0.2 + 0.8\\left[1 - \\exp(-u_L/u_{ref})\\right]",
+      "meaning_es": "Cierre propio de la tesis; solo para empaques estructurados mientras no haya correlación validada.",
+      "meaning_en": "Thesis own closure; only for structured packings until a validated correlation is added.",
+      "symbols": [
+        "a_e",
+        "a",
+        "u_L"
+      ],
+      "provenance": "own_closure",
+      "reference": "thesis",
+      "validity": null,
+      "implemented_by": [
+        "packing:wetting_fraction"
+      ],
+      "errata": []
+    },
+    {
+      "id": "packing.ergun",
+      "title_es": "Caída de presión (Ergun)",
+      "title_en": "Pressure drop (Ergun)",
+      "latex": "\\dfrac{\\Delta P}{H} = 150\\dfrac{(1-\\varepsilon)^2\\mu_G u_G}{\\varepsilon^3 d_p^2} + 1.75\\dfrac{(1-\\varepsilon)\\rho_G u_G^2}{\\varepsilon^3 d_p}",
+      "meaning_es": "Pérdida de presión del gas al atravesar el lecho; pensada para lechos de partículas (pendiente reemplazar).",
+      "meaning_en": "Gas pressure loss across the bed; meant for particle beds (replacement pending).",
+      "symbols": [
+        "dP",
+        "H",
+        "eps",
+        "mu_G",
+        "u_G",
+        "d_p",
+        "rho_G"
+      ],
+      "provenance": "literature",
+      "reference": "ergun1952",
+      "validity": "particle beds; dry bed, no liquid holdup",
+      "implemented_by": [
+        "packing:pressure_drop_ergun_Pa_m"
+      ],
+      "errata": []
+    },
+    {
+      "id": "packing.flooding_legacy",
+      "title_es": "Velocidad de inundación (legacy)",
+      "title_en": "Flooding velocity (legacy)",
+      "latex": "v_{fl} = C_{fl}\\sqrt{\\dfrac{(\\rho_L - \\rho_G)\\,g\\,d_p}{\\rho_G}}\\;\\varepsilon^{0.15}",
+      "meaning_es": "Velocidad máxima de gas antes de inundar; cierre de la tesis, probablemente optimista (aviso de factor F).",
+      "meaning_en": "Maximum gas velocity before flooding; thesis closure, likely optimistic (F-factor warning).",
+      "symbols": [
+        "v_flood",
+        "rho_L",
+        "rho_G",
+        "g",
+        "d_p",
+        "eps"
+      ],
+      "provenance": "own_closure",
+      "reference": "thesis",
+      "validity": "not validated; F > 3 Pa^0.5 is warned (Kister 1992)",
+      "implemented_by": [
+        "packing:flooding_velocity_m_s"
+      ],
+      "errata": []
+    },
+    {
+      "id": "packing.column_diameter",
+      "title_es": "Diámetro de columna",
+      "title_en": "Column diameter",
+      "latex": "A = \\dfrac{Q_G}{f\\,v_{fl}},\\qquad D = \\sqrt{4A/\\pi}",
+      "meaning_es": "El gas debe pasar a una fracción f de la velocidad de inundación.",
+      "meaning_en": "The gas must flow at a fraction f of the flooding velocity.",
+      "symbols": [
+        "A_col",
+        "Q_G",
+        "f",
+        "v_flood",
+        "D_col"
+      ],
+      "provenance": "theory",
+      "reference": null,
+      "validity": null,
+      "implemented_by": [
+        "packing:column_diameter_m"
+      ],
+      "errata": []
+    },
+    {
+      "id": "absorber.two_film",
+      "title_es": "Coeficiente global (dos películas)",
+      "title_en": "Overall coefficient (two films)",
+      "latex": "\\dfrac{1}{K_G} = \\dfrac{1}{k_G} + \\dfrac{H^{cc}}{E\\,k_L}",
+      "meaning_es": "Las resistencias del gas y del líquido (acelerado por la reacción) se suman en serie.",
+      "meaning_en": "Gas and liquid resistances (the latter sped up by reaction) add in series.",
+      "symbols": [
+        "KG",
+        "kG",
+        "H_cc",
+        "E",
+        "kL"
+      ],
+      "provenance": "theory",
+      "reference": "danckwerts1970",
+      "validity": null,
+      "implemented_by": [
+        "packing:mass_transfer_coefficients",
+        "absorber:simulate_absorber"
+      ],
+      "errata": [
+        "E-003"
+      ]
+    },
+    {
+      "id": "absorber.ntu_step",
+      "title_es": "Unidades de transferencia por tramo",
+      "title_en": "Transfer units per slice",
+      "latex": "\\Delta NTU = \\dfrac{K_G\\,a_e\\,c_{tot}\\,\\Delta z}{G''},\\qquad y_{z+\\Delta z} = y^* + (y_z - y^*)\\,e^{-\\Delta NTU}",
+      "meaning_es": "Cuánto CO₂ se absorbe en cada tramo de la torre (adimensional).",
+      "meaning_en": "How much CO₂ each slice of the column absorbs (dimensionless).",
+      "symbols": [
+        "NTU",
+        "KG",
+        "a_e",
+        "c_tot",
+        "dz",
+        "G_flux",
+        "y",
+        "y_star"
+      ],
+      "provenance": "theory",
+      "reference": "seader2011",
+      "validity": "constant total gas flow (dilute-gas approximation)",
+      "implemented_by": [
+        "absorber:ntu_increment",
+        "absorber:simulate_absorber"
+      ],
+      "errata": [
+        "E-001",
+        "E-007"
+      ]
+    },
+    {
+      "id": "absorber.hydroxide_balance",
+      "title_es": "Balance de hidróxido (contracorriente)",
+      "title_en": "Hydroxide balance (counter-current)",
+      "latex": "[OH^-](z) = [OH^-]_{in} - \\nu\\,\\dfrac{G\\,(y(z) - y_{out})}{Q_L}",
+      "meaning_es": "Cada CO₂ absorbido consume dos OH⁻; el solvente fresco entra por arriba.",
+      "meaning_en": "Each CO₂ absorbed consumes two OH⁻; fresh solvent enters at the top.",
+      "symbols": [
+        "OH",
+        "nu",
+        "G",
+        "y",
+        "y_top",
+        "Q_L"
+      ],
+      "provenance": "theory",
+      "reference": null,
+      "validity": "carbonate route only",
+      "implemented_by": [
+        "absorber:simulate_absorber"
+      ],
+      "errata": [
+        "E-004",
+        "E-007"
+      ]
+    },
+    {
+      "id": "absorber.energy_balance",
+      "title_es": "Balance de energía del líquido",
+      "title_en": "Liquid energy balance",
+      "latex": "T_L(z) = T_{L,in} + \\dfrac{(-\\Delta H_{abs})\\,G\\,(y(z) - y_{out})}{\\dot m_L\\,c_{p,L}}",
+      "meaning_es": "El calor de reacción calienta el solvente mientras baja (adiabático; sin evaporación).",
+      "meaning_en": "Reaction heat warms the solvent on its way down (adiabatic; no evaporation).",
+      "symbols": [
+        "T_L",
+        "dH",
+        "G",
+        "y",
+        "y_top",
+        "m_L",
+        "cp_L"
+      ],
+      "provenance": "theory",
+      "reference": null,
+      "validity": "upper bound on ΔT (evaporation and gas sensible heat neglected); c_p = 3.9 kJ/(kg·K) own closure",
+      "implemented_by": [
+        "absorber:simulate_absorber"
+      ],
+      "errata": [
+        "E-013"
+      ]
+    },
+    {
+      "id": "absorber.equilibrium",
+      "title_es": "Equilibrio gas–líquido",
+      "title_en": "Gas–liquid equilibrium",
+      "latex": "y^* = \\dfrac{H^{cc}\\,[CO_2]}{c_{tot}}",
+      "meaning_es": "Fracción de CO₂ que el líquido local devolvería al gas; casi cero mientras haya OH⁻.",
+      "meaning_en": "CO₂ fraction the local liquid would push back into the gas; near zero while OH⁻ remains.",
+      "symbols": [
+        "y_star",
+        "H_cc",
+        "CO2aq",
+        "c_tot"
+      ],
+      "provenance": "theory",
+      "reference": null,
+      "validity": null,
+      "implemented_by": [
+        "absorber:simulate_absorber"
+      ],
+      "errata": [
+        "E-006"
+      ]
+    },
+    {
+      "id": "absorber.pump_power",
+      "title_es": "Potencia de bombeo",
+      "title_en": "Pump power",
+      "latex": "\\dot W_{pump} = \\dfrac{\\rho_L\\,g\\,(H + H_{extra})\\,Q_L}{\\eta}",
+      "meaning_es": "Energía para subir el solvente hasta el distribuidor sobre el lecho.",
+      "meaning_en": "Energy to lift the solvent to the distributor above the bed.",
+      "symbols": [
+        "W",
+        "rho_L",
+        "g",
+        "H",
+        "H_extra",
+        "Q_L",
+        "eta"
+      ],
+      "provenance": "theory",
+      "reference": null,
+      "validity": "H_extra = 5 m own closure",
+      "implemented_by": [
+        "absorber:simulate_absorber"
+      ],
+      "errata": [
+        "E-010"
+      ]
+    },
+    {
+      "id": "absorber.blower_power",
+      "title_es": "Potencia del soplador",
+      "title_en": "Blower power",
+      "latex": "\\dot W_{blower} = \\dfrac{\\Delta P\\,Q_G}{\\eta}",
+      "meaning_es": "Energía para empujar el gas a través del lecho.",
+      "meaning_en": "Energy to push the gas through the bed.",
+      "symbols": [
+        "W",
+        "dP",
+        "Q_G",
+        "eta"
+      ],
+      "provenance": "theory",
+      "reference": null,
+      "validity": null,
+      "implemented_by": [
+        "absorber:simulate_absorber"
+      ],
+      "errata": []
+    },
+    {
+      "id": "cell.faraday",
+      "title_es": "Ley de Faraday",
+      "title_en": "Faraday's law",
+      "latex": "I = \\dfrac{n_e\\,F\\,\\dot n_{CO_2}}{t_{Na}},\\qquad A_{cell} = \\dfrac{I}{j}",
+      "meaning_es": "La celda mueve n_e iones Na⁺ por CO₂ para regenerar el NaOH; el área sale de la corriente.",
+      "meaning_en": "The cell moves n_e Na⁺ ions per CO₂ to regenerate NaOH; the area follows from the current.",
+      "symbols": [
+        "I_cell",
+        "n_e",
+        "F",
+        "n_dot",
+        "t_Na",
+        "A_cell",
+        "j"
+      ],
+      "provenance": "theory",
+      "reference": "faraday",
+      "validity": "n_e = 2 (carbonate) or 1 (bicarbonate)",
+      "implemented_by": [
+        "cell:electrochemical_regeneration"
+      ],
+      "errata": [
+        "E-008"
+      ]
+    },
+    {
+      "id": "cell.energy",
+      "title_es": "Energía de la celda por mol de CO₂",
+      "title_en": "Cell energy per mol CO₂",
+      "latex": "E_{mol} = \\dfrac{n_e\\,F\\,V}{t_{Na}}",
+      "meaning_es": "Electricidad necesaria por cada mol de CO₂ regenerado.",
+      "meaning_en": "Electricity needed per mol of CO₂ regenerated.",
+      "symbols": [
+        "E_mol",
+        "n_e",
+        "F",
+        "V",
+        "t_Na"
+      ],
+      "provenance": "theory",
+      "reference": "faraday",
+      "validity": null,
+      "implemented_by": [
+        "cell:energy_per_mol_CO2_J"
+      ],
+      "errata": [
+        "E-008"
+      ]
+    },
+    {
+      "id": "cell.transference",
+      "title_es": "Número de transferencia del Na⁺",
+      "title_en": "Na⁺ transference number",
+      "latex": "t_{Na} = 0.70 + 0.20\\left(1 - e^{-4C}\\right) - 0.05\\,\\dfrac{\\min(j,\\,250)}{250}",
+      "meaning_es": "Fracción de la corriente que transportan los Na⁺; ajuste empírico de la tesis.",
+      "meaning_en": "Fraction of the current carried by Na⁺; empirical fit from the thesis.",
+      "symbols": [
+        "t_Na",
+        "C",
+        "j"
+      ],
+      "provenance": "own_closure",
+      "reference": "thesis",
+      "validity": "j in mA/cm²; clipped to 0.10–0.98",
+      "implemented_by": [
+        "cell:tna_empirical"
+      ],
+      "errata": []
+    },
+    {
+      "id": "cell.jv_curve",
+      "title_es": "Curva corriente–voltaje",
+      "title_en": "Current–voltage curve",
+      "latex": "V = 3.02912\\,\\ln\\!\\left(\\dfrac{j + 767.22373}{604.92445}\\right)",
+      "meaning_es": "Voltaje de la celda según la densidad de corriente; ajuste a los datos de la celda de la tesis.",
+      "meaning_en": "Cell voltage versus current density; fit to the thesis cell data.",
+      "symbols": [
+        "V",
+        "j"
+      ],
+      "provenance": "own_closure",
+      "reference": "thesis",
+      "validity": "j in mA/cm²; fit range not documented",
+      "implemented_by": [
+        "cell:voltage_from_current_density_V"
+      ],
+      "errata": []
+    },
+    {
+      "id": "tea.crf",
+      "title_es": "Factor de recuperación de capital",
+      "title_en": "Capital recovery factor",
+      "latex": "CRF = \\dfrac{i\\,(1+i)^n}{(1+i)^n - 1}",
+      "meaning_es": "Convierte la inversión en una cuota anual equivalente.",
+      "meaning_en": "Turns the investment into an equivalent annual payment.",
+      "symbols": [
+        "CRF",
+        "i",
+        "n"
+      ],
+      "provenance": "theory",
+      "reference": "peters2003",
+      "validity": null,
+      "implemented_by": [
+        "tea:crf"
+      ],
+      "errata": []
+    },
+    {
+      "id": "tea.annual_tonnage",
+      "title_es": "CO₂ por año",
+      "title_en": "CO₂ per year",
+      "latex": "\\dot m_{CO_2} = \\dot n_{CO_2}\\cdot 44.01\\times10^{-6}\\cdot 3600\\cdot h_{op}",
+      "meaning_es": "Toneladas de CO₂ por año con las horas de operación de la planta.",
+      "meaning_en": "Tonnes of CO₂ per year at the plant's operating hours.",
+      "symbols": [
+        "m_CO2",
+        "n_dot",
+        "h_op"
+      ],
+      "provenance": "theory",
+      "reference": null,
+      "validity": null,
+      "implemented_by": [
+        "tea:annual_t_from_mol_s",
+        "pipeline:run_case"
+      ],
+      "errata": [
+        "E-009"
+      ]
+    },
+    {
+      "id": "tea.column_capex",
+      "title_es": "CAPEX de la columna",
+      "title_en": "Column CAPEX",
+      "latex": "CAPEX_{col} = f_{inst}\\,f_P\\left(c_{shell}\\,\\pi D H + c_{pack}\\,A H + c_{int}\\,A\\right)",
+      "meaning_es": "Costo instalado de coraza, empaque e internos; costos unitarios preliminares de la tesis.",
+      "meaning_en": "Installed cost of shell, packing and internals; preliminary unit costs from the thesis.",
+      "symbols": [
+        "CAPEX",
+        "D_col",
+        "H",
+        "A_col"
+      ],
+      "provenance": "own_closure",
+      "reference": "thesis",
+      "validity": "AACE Class 5",
+      "implemented_by": [
+        "tea:column_capex"
+      ],
+      "errata": []
+    },
+    {
+      "id": "tea.lcoc",
+      "title_es": "Costo nivelado de captura",
+      "title_en": "Levelized cost of capture",
+      "latex": "LCOC = \\dfrac{CAPEX\\cdot CRF + OPEX}{\\dot m_{CO_2}}",
+      "meaning_es": "Cuánto cuesta capturar cada tonelada de CO₂, sumando inversión anualizada y operación.",
+      "meaning_en": "Cost of capturing each tonne of CO₂: annualised investment plus operation.",
+      "symbols": [
+        "LCOC",
+        "CAPEX",
+        "CRF",
+        "OPEX",
+        "m_CO2"
+      ],
+      "provenance": "theory",
+      "reference": null,
+      "validity": "AACE Class 5 cost inputs",
+      "implemented_by": [
+        "tea:design_costs"
+      ],
+      "errata": []
+    },
+    {
+      "id": "tea.indirect_emissions",
+      "title_es": "Emisiones indirectas",
+      "title_en": "Indirect emissions",
+      "latex": "\\dfrac{\\text{kgCO}_2\\text{e}}{\\text{t}} = \\dfrac{h_{op}\\,\\dot W_{total}\\,EF}{\\dot m_{CO_2}}",
+      "meaning_es": "CO₂ emitido al generar la electricidad que consume la captura, por tonelada capturada.",
+      "meaning_en": "CO₂ emitted to generate the electricity the capture uses, per tonne captured.",
+      "symbols": [
+        "h_op",
+        "W",
+        "EF",
+        "m_CO2"
+      ],
+      "provenance": "theory",
+      "reference": null,
+      "validity": null,
+      "implemented_by": [
+        "tea:design_costs"
+      ],
+      "errata": []
+    },
+    {
+      "id": "optimize.weighted_score",
+      "title_es": "Puntaje multiobjetivo",
+      "title_en": "Multi-objective score",
+      "latex": "s = \\sum_k w_k\\,\\dfrac{x_k - \\min x_k}{\\max x_k - \\min x_k}",
+      "meaning_es": "Suma ponderada de LCOC, CAPEX, OPEX, energía y emisiones normalizados; solo entre diseños que cumplen la meta.",
+      "meaning_en": "Weighted sum of normalised LCOC, CAPEX, OPEX, energy and emissions; only among designs meeting the target.",
+      "symbols": [
+        "w"
+      ],
+      "provenance": "own_closure",
+      "reference": "thesis",
+      "validity": null,
+      "implemented_by": [
+        "optimize:weighted_scores",
+        "optimize:choose_best"
+      ],
+      "errata": [
+        "E-005"
+      ]
+    }
+  ],
+  "symbols": {
+    "T": {
+      "key": "T",
+      "latex": "T",
+      "unit": "K",
+      "es": "temperatura",
+      "en": "temperature"
+    },
+    "T_L": {
+      "key": "T_L",
+      "latex": "T_L",
+      "unit": "K",
+      "es": "temperatura local del líquido",
+      "en": "local liquid temperature"
+    },
+    "P": {
+      "key": "P",
+      "latex": "P",
+      "unit": "Pa",
+      "es": "presión absoluta",
+      "en": "absolute pressure"
+    },
+    "R": {
+      "key": "R",
+      "latex": "R",
+      "unit": "J/(mol·K)",
+      "es": "constante de los gases",
+      "en": "gas constant"
+    },
+    "F": {
+      "key": "F",
+      "latex": "F",
+      "unit": "C/mol",
+      "es": "constante de Faraday",
+      "en": "Faraday constant"
+    },
+    "g": {
+      "key": "g",
+      "latex": "g",
+      "unit": "m/s²",
+      "es": "aceleración de la gravedad",
+      "en": "gravitational acceleration"
+    },
+    "p_sat": {
+      "key": "p_sat",
+      "latex": "p_{sat}",
+      "unit": "Pa",
+      "es": "presión de saturación del agua",
+      "en": "water saturation pressure"
+    },
+    "y": {
+      "key": "y",
+      "latex": "y",
+      "unit": "-",
+      "es": "fracción molar de CO₂ en el gas",
+      "en": "CO₂ mole fraction in the gas"
+    },
+    "y_star": {
+      "key": "y_star",
+      "latex": "y^*",
+      "unit": "-",
+      "es": "fracción molar de CO₂ en equilibrio con el líquido",
+      "en": "CO₂ mole fraction in equilibrium with the liquid"
+    },
+    "y_top": {
+      "key": "y_top",
+      "latex": "y_{out}",
+      "unit": "-",
+      "es": "fracción de CO₂ del gas tratado (tope)",
+      "en": "CO₂ fraction of the treated gas (top)"
+    },
+    "y_H2O": {
+      "key": "y_H2O",
+      "latex": "y_{H_2O}",
+      "unit": "-",
+      "es": "fracción molar de agua",
+      "en": "water mole fraction"
+    },
+    "Q_N": {
+      "key": "Q_N",
+      "latex": "Q_N",
+      "unit": "Nm³/h",
+      "es": "caudal de gas seco a condiciones normales",
+      "en": "dry gas flow at normal conditions"
+    },
+    "n_dot": {
+      "key": "n_dot",
+      "latex": "\\dot n",
+      "unit": "mol/s",
+      "es": "flujo molar",
+      "en": "molar flow"
+    },
+    "G": {
+      "key": "G",
+      "latex": "G",
+      "unit": "mol/s",
+      "es": "flujo molar total de gas",
+      "en": "total gas molar flow"
+    },
+    "G_flux": {
+      "key": "G_flux",
+      "latex": "G''",
+      "unit": "mol/(m²·s)",
+      "es": "flux molar de gas por área de columna",
+      "en": "gas molar flux per column area"
+    },
+    "c_tot": {
+      "key": "c_tot",
+      "latex": "c_{tot}",
+      "unit": "mol/m³",
+      "es": "concentración molar total del gas",
+      "en": "total gas molar concentration"
+    },
+    "M": {
+      "key": "M",
+      "latex": "M",
+      "unit": "kg/mol",
+      "es": "masa molar media del gas",
+      "en": "mean molar mass of the gas"
+    },
+    "rho_G": {
+      "key": "rho_G",
+      "latex": "\\rho_G",
+      "unit": "kg/m³",
+      "es": "densidad del gas",
+      "en": "gas density"
+    },
+    "rho_L": {
+      "key": "rho_L",
+      "latex": "\\rho_L",
+      "unit": "kg/m³",
+      "es": "densidad del líquido",
+      "en": "liquid density"
+    },
+    "mu_G": {
+      "key": "mu_G",
+      "latex": "\\mu_G",
+      "unit": "Pa·s",
+      "es": "viscosidad del gas",
+      "en": "gas viscosity"
+    },
+    "mu_L": {
+      "key": "mu_L",
+      "latex": "\\mu_L",
+      "unit": "Pa·s",
+      "es": "viscosidad del líquido",
+      "en": "liquid viscosity"
+    },
+    "D_G": {
+      "key": "D_G",
+      "latex": "D_G",
+      "unit": "m²/s",
+      "es": "difusividad del CO₂ en el gas",
+      "en": "CO₂ diffusivity in the gas"
+    },
+    "D_L": {
+      "key": "D_L",
+      "latex": "D_{CO_2}",
+      "unit": "m²/s",
+      "es": "difusividad del CO₂ en el líquido",
+      "en": "CO₂ diffusivity in the liquid"
+    },
+    "D_OH": {
+      "key": "D_OH",
+      "latex": "D_{OH}",
+      "unit": "m²/s",
+      "es": "difusividad del NaOH (OH⁻ con su contraión)",
+      "en": "NaOH diffusivity (OH⁻ with its counter-ion)"
+    },
+    "sigma": {
+      "key": "sigma",
+      "latex": "\\sigma",
+      "unit": "N/m",
+      "es": "tensión superficial del líquido",
+      "en": "liquid surface tension"
+    },
+    "sigma_c": {
+      "key": "sigma_c",
+      "latex": "\\sigma_c",
+      "unit": "N/m",
+      "es": "tensión superficial crítica del material del empaque",
+      "en": "critical surface tension of the packing material"
+    },
+    "C": {
+      "key": "C",
+      "latex": "C",
+      "unit": "mol/L",
+      "es": "concentración de NaOH del solvente",
+      "en": "solvent NaOH concentration"
+    },
+    "OH": {
+      "key": "OH",
+      "latex": "[OH^-]",
+      "unit": "mol/m³",
+      "es": "concentración local de hidróxido",
+      "en": "local hydroxide concentration"
+    },
+    "CO3": {
+      "key": "CO3",
+      "latex": "[CO_3^{2-}]",
+      "unit": "mol/L",
+      "es": "concentración local de carbonato",
+      "en": "local carbonate concentration"
+    },
+    "CO2aq": {
+      "key": "CO2aq",
+      "latex": "[CO_2]",
+      "unit": "mol/L",
+      "es": "CO₂ disuelto libre",
+      "en": "free dissolved CO₂"
+    },
+    "CO2i": {
+      "key": "CO2i",
+      "latex": "[CO_2]_i",
+      "unit": "mol/m³",
+      "es": "CO₂ disuelto en la interfase",
+      "en": "dissolved CO₂ at the interface"
+    },
+    "I": {
+      "key": "I",
+      "latex": "I",
+      "unit": "kmol/m³",
+      "es": "fuerza iónica",
+      "en": "ionic strength"
+    },
+    "H_cp": {
+      "key": "H_cp",
+      "latex": "H^{cp}",
+      "unit": "mol/(m³·Pa)",
+      "es": "solubilidad de Henry del CO₂",
+      "en": "CO₂ Henry solubility"
+    },
+    "H_cc": {
+      "key": "H_cc",
+      "latex": "H^{cc}",
+      "unit": "-",
+      "es": "constante de Henry adimensional (gas/líquido)",
+      "en": "dimensionless Henry constant (gas/liquid)"
+    },
+    "h_i": {
+      "key": "h_i",
+      "latex": "h_i",
+      "unit": "m³/kmol",
+      "es": "parámetro específico del ion",
+      "en": "ion-specific parameter"
+    },
+    "h_G": {
+      "key": "h_G",
+      "latex": "h_G",
+      "unit": "m³/kmol",
+      "es": "parámetro específico del gas",
+      "en": "gas-specific parameter"
+    },
+    "c_i": {
+      "key": "c_i",
+      "latex": "c_i",
+      "unit": "kmol/m³",
+      "es": "concentración del ion i",
+      "en": "concentration of ion i"
+    },
+    "K1": {
+      "key": "K1",
+      "latex": "K_1",
+      "unit": "mol/L",
+      "es": "primera constante de disociación del ácido carbónico",
+      "en": "first dissociation constant of carbonic acid"
+    },
+    "K2": {
+      "key": "K2",
+      "latex": "K_2",
+      "unit": "mol/L",
+      "es": "segunda constante de disociación del ácido carbónico",
+      "en": "second dissociation constant of carbonic acid"
+    },
+    "Kw": {
+      "key": "Kw",
+      "latex": "K_w",
+      "unit": "mol²/L²",
+      "es": "producto iónico del agua",
+      "en": "ion product of water"
+    },
+    "k2": {
+      "key": "k2",
+      "latex": "k_2",
+      "unit": "m³/(mol·s)",
+      "es": "constante de velocidad CO₂ + OH⁻",
+      "en": "CO₂ + OH⁻ rate constant"
+    },
+    "Ha": {
+      "key": "Ha",
+      "latex": "Ha",
+      "unit": "-",
+      "es": "número de Hatta",
+      "en": "Hatta number"
+    },
+    "E": {
+      "key": "E",
+      "latex": "E",
+      "unit": "-",
+      "es": "factor de mejora por reacción",
+      "en": "enhancement factor"
+    },
+    "E_inf": {
+      "key": "E_inf",
+      "latex": "E_\\infty",
+      "unit": "-",
+      "es": "factor de mejora instantáneo",
+      "en": "instantaneous enhancement factor"
+    },
+    "nu": {
+      "key": "nu",
+      "latex": "\\nu",
+      "unit": "-",
+      "es": "OH⁻ por CO₂ en la reacción (2)",
+      "en": "OH⁻ per CO₂ in the reaction (2)"
+    },
+    "kG": {
+      "key": "kG",
+      "latex": "k_G",
+      "unit": "m/s",
+      "es": "coeficiente de película de gas",
+      "en": "gas-film coefficient"
+    },
+    "kL": {
+      "key": "kL",
+      "latex": "k_L",
+      "unit": "m/s",
+      "es": "coeficiente de película de líquido",
+      "en": "liquid-film coefficient"
+    },
+    "KG": {
+      "key": "KG",
+      "latex": "K_G",
+      "unit": "m/s",
+      "es": "coeficiente global (base gas)",
+      "en": "overall coefficient (gas basis)"
+    },
+    "a": {
+      "key": "a",
+      "latex": "a",
+      "unit": "m²/m³",
+      "es": "área específica del empaque",
+      "en": "packing specific area"
+    },
+    "a_e": {
+      "key": "a_e",
+      "latex": "a_e",
+      "unit": "m²/m³",
+      "es": "área interfacial efectiva (mojada)",
+      "en": "effective (wetted) interfacial area"
+    },
+    "d_p": {
+      "key": "d_p",
+      "latex": "d_p",
+      "unit": "m",
+      "es": "tamaño nominal del empaque",
+      "en": "packing nominal size"
+    },
+    "eps": {
+      "key": "eps",
+      "latex": "\\varepsilon",
+      "unit": "-",
+      "es": "fracción de vacío",
+      "en": "void fraction"
+    },
+    "L_m": {
+      "key": "L_m",
+      "latex": "L",
+      "unit": "kg/(m²·s)",
+      "es": "flux másico de líquido",
+      "en": "liquid mass flux"
+    },
+    "G_m": {
+      "key": "G_m",
+      "latex": "G_m",
+      "unit": "kg/(m²·s)",
+      "es": "flux másico de gas",
+      "en": "gas mass flux"
+    },
+    "u_G": {
+      "key": "u_G",
+      "latex": "u_G",
+      "unit": "m/s",
+      "es": "velocidad superficial del gas",
+      "en": "gas superficial velocity"
+    },
+    "u_L": {
+      "key": "u_L",
+      "latex": "u_L",
+      "unit": "m/s",
+      "es": "velocidad superficial del líquido",
+      "en": "liquid superficial velocity"
+    },
+    "v_flood": {
+      "key": "v_flood",
+      "latex": "v_{fl}",
+      "unit": "m/s",
+      "es": "velocidad de inundación",
+      "en": "flooding velocity"
+    },
+    "f": {
+      "key": "f",
+      "latex": "f",
+      "unit": "-",
+      "es": "fracción de inundación de diseño",
+      "en": "design flooding fraction"
+    },
+    "D_col": {
+      "key": "D_col",
+      "latex": "D",
+      "unit": "m",
+      "es": "diámetro de columna",
+      "en": "column diameter"
+    },
+    "A_col": {
+      "key": "A_col",
+      "latex": "A",
+      "unit": "m²",
+      "es": "área transversal de columna",
+      "en": "column cross-section"
+    },
+    "Q_G": {
+      "key": "Q_G",
+      "latex": "Q_G",
+      "unit": "m³/s",
+      "es": "caudal real de gas",
+      "en": "actual gas flow"
+    },
+    "Q_L": {
+      "key": "Q_L",
+      "latex": "Q_L",
+      "unit": "m³/s",
+      "es": "caudal de solvente",
+      "en": "solvent flow"
+    },
+    "m_L": {
+      "key": "m_L",
+      "latex": "\\dot m_L",
+      "unit": "kg/s",
+      "es": "flujo másico de solvente",
+      "en": "solvent mass flow"
+    },
+    "cp_L": {
+      "key": "cp_L",
+      "latex": "c_{p,L}",
+      "unit": "J/(kg·K)",
+      "es": "calor específico del solvente",
+      "en": "solvent specific heat"
+    },
+    "dH": {
+      "key": "dH",
+      "latex": "\\Delta H_{abs}",
+      "unit": "J/mol",
+      "es": "calor de absorción por mol de CO₂",
+      "en": "heat of absorption per mol CO₂"
+    },
+    "dz": {
+      "key": "dz",
+      "latex": "\\Delta z",
+      "unit": "m",
+      "es": "altura del tramo de integración",
+      "en": "integration slice height"
+    },
+    "NTU": {
+      "key": "NTU",
+      "latex": "\\Delta NTU",
+      "unit": "-",
+      "es": "unidades de transferencia del tramo",
+      "en": "transfer units of the slice"
+    },
+    "H": {
+      "key": "H",
+      "latex": "H",
+      "unit": "m",
+      "es": "altura empacada",
+      "en": "packed height"
+    },
+    "H_extra": {
+      "key": "H_extra",
+      "latex": "H_{extra}",
+      "unit": "m",
+      "es": "cabeza adicional (distribuidor, tubería)",
+      "en": "extra head (distributor, piping)"
+    },
+    "dP": {
+      "key": "dP",
+      "latex": "\\Delta P",
+      "unit": "Pa",
+      "es": "caída de presión del gas",
+      "en": "gas pressure drop"
+    },
+    "eta": {
+      "key": "eta",
+      "latex": "\\eta",
+      "unit": "-",
+      "es": "eficiencia de bomba o soplador",
+      "en": "pump or blower efficiency"
+    },
+    "W": {
+      "key": "W",
+      "latex": "\\dot W",
+      "unit": "W",
+      "es": "potencia",
+      "en": "power"
+    },
+    "j": {
+      "key": "j",
+      "latex": "j",
+      "unit": "A/m²",
+      "es": "densidad de corriente de la celda",
+      "en": "cell current density"
+    },
+    "t_Na": {
+      "key": "t_Na",
+      "latex": "t_{Na}",
+      "unit": "-",
+      "es": "número de transferencia del Na⁺",
+      "en": "Na⁺ transference number"
+    },
+    "V": {
+      "key": "V",
+      "latex": "V",
+      "unit": "V",
+      "es": "voltaje de la celda",
+      "en": "cell voltage"
+    },
+    "n_e": {
+      "key": "n_e",
+      "latex": "n_e",
+      "unit": "-",
+      "es": "electrones (Na⁺) por CO₂: 2 carbonato, 1 bicarbonato",
+      "en": "electrons (Na⁺) per CO₂: 2 carbonate, 1 bicarbonate"
+    },
+    "I_cell": {
+      "key": "I_cell",
+      "latex": "I",
+      "unit": "A",
+      "es": "corriente de la celda",
+      "en": "cell current"
+    },
+    "A_cell": {
+      "key": "A_cell",
+      "latex": "A_{cell}",
+      "unit": "m²",
+      "es": "área de membrana",
+      "en": "membrane area"
+    },
+    "E_mol": {
+      "key": "E_mol",
+      "latex": "E_{mol}",
+      "unit": "J/mol",
+      "es": "energía eléctrica por mol de CO₂",
+      "en": "electrical energy per mol CO₂"
+    },
+    "i": {
+      "key": "i",
+      "latex": "i",
+      "unit": "-",
+      "es": "tasa de descuento",
+      "en": "discount rate"
+    },
+    "n": {
+      "key": "n",
+      "latex": "n",
+      "unit": "años",
+      "es": "vida del proyecto",
+      "en": "project life"
+    },
+    "CRF": {
+      "key": "CRF",
+      "latex": "CRF",
+      "unit": "1/año",
+      "es": "factor de recuperación de capital",
+      "en": "capital recovery factor"
+    },
+    "CAPEX": {
+      "key": "CAPEX",
+      "latex": "CAPEX",
+      "unit": "USD",
+      "es": "inversión instalada",
+      "en": "installed capital cost"
+    },
+    "OPEX": {
+      "key": "OPEX",
+      "latex": "OPEX",
+      "unit": "USD/año",
+      "es": "costo de operación anual",
+      "en": "annual operating cost"
+    },
+    "m_CO2": {
+      "key": "m_CO2",
+      "latex": "\\dot m_{CO_2}",
+      "unit": "t/año",
+      "es": "CO₂ capturado por año",
+      "en": "CO₂ captured per year"
+    },
+    "h_op": {
+      "key": "h_op",
+      "latex": "h_{op}",
+      "unit": "h/año",
+      "es": "horas de operación por año",
+      "en": "operating hours per year"
+    },
+    "LCOC": {
+      "key": "LCOC",
+      "latex": "LCOC",
+      "unit": "USD/t",
+      "es": "costo nivelado de captura",
+      "en": "levelized cost of capture"
+    },
+    "EF": {
+      "key": "EF",
+      "latex": "EF",
+      "unit": "kgCO₂e/kWh",
+      "es": "factor de emisión de la red",
+      "en": "grid emission factor"
+    },
+    "w": {
+      "key": "w",
+      "latex": "w_k",
+      "unit": "-",
+      "es": "peso del objetivo k",
+      "en": "weight of objective k"
+    }
+  },
+  "references": {
+    "antoine": {
+      "key": "antoine",
+      "citation": "Dean, J. A. (1999). Lange's Handbook of Chemistry, 15th ed. McGraw-Hill. Antoine constants of water."
+    },
+    "sutherland1893": {
+      "key": "sutherland1893",
+      "citation": "Sutherland, W. (1893). The viscosity of gases and molecular force. Phil. Mag. 36, 507–531."
+    },
+    "fuller1966": {
+      "key": "fuller1966",
+      "citation": "Fuller, E. N., Schettler, P. D., Giddings, J. C. (1966). A new method for prediction of binary gas-phase diffusion coefficients. Ind. Eng. Chem. 58(5), 18–27."
+    },
+    "sander2015": {
+      "key": "sander2015",
+      "citation": "Sander, R. (2015). Compilation of Henry's law constants (version 4.0) for water as solvent. Atmos. Chem. Phys. 15, 4399–4981."
+    },
+    "weisenberger1996": {
+      "key": "weisenberger1996",
+      "citation": "Weisenberger, S., Schumpe, A. (1996). Estimation of gas solubilities in salt solutions at temperatures from 273 K to 363 K. AIChE J. 42(1), 298–300."
+    },
+    "plummer1982": {
+      "key": "plummer1982",
+      "citation": "Plummer, L. N., Busenberg, E. (1982). The solubilities of calcite, aragonite and vaterite in CO2–H2O solutions between 0 and 90 °C. Geochim. Cosmochim. Acta 46, 1011–1040."
+    },
+    "harned1958": {
+      "key": "harned1958",
+      "citation": "Harned, H. S., Owen, B. B. (1958). The Physical Chemistry of Electrolytic Solutions, 3rd ed. Reinhold."
+    },
+    "crc": {
+      "key": "crc",
+      "citation": "Haynes, W. M. (ed.). CRC Handbook of Chemistry and Physics. CRC Press. Diffusion coefficients of electrolytes at infinite dilution."
+    },
+    "iapws2014": {
+      "key": "iapws2014",
+      "citation": "IAPWS R1-76(2014). Revised release on surface tension of ordinary water substance."
+    },
+    "wagman1982": {
+      "key": "wagman1982",
+      "citation": "Wagman, D. D. et al. (1982). The NBS tables of chemical thermodynamic properties. J. Phys. Chem. Ref. Data 11, Suppl. 2."
+    },
+    "pohorecki1988": {
+      "key": "pohorecki1988",
+      "citation": "Pohorecki, R., Moniuk, W. (1988). Kinetics of reaction between carbon dioxide and hydroxyl ions in aqueous electrolyte solutions. Chem. Eng. Sci. 43(7), 1677–1684."
+    },
+    "danckwerts1970": {
+      "key": "danckwerts1970",
+      "citation": "Danckwerts, P. V. (1970). Gas-Liquid Reactions. McGraw-Hill."
+    },
+    "decoursey1974": {
+      "key": "decoursey1974",
+      "citation": "DeCoursey, W. J. (1974). Absorption with chemical reaction: development of a new relation for the Danckwerts model. Chem. Eng. Sci. 29, 1867–1872."
+    },
+    "onda1968": {
+      "key": "onda1968",
+      "citation": "Onda, K., Takeuchi, H., Okumoto, Y. (1968). Mass transfer coefficients between gas and liquid phases in packed columns. J. Chem. Eng. Japan 1(1), 56–62."
+    },
+    "ergun1952": {
+      "key": "ergun1952",
+      "citation": "Ergun, S. (1952). Fluid flow through packed columns. Chem. Eng. Prog. 48(2), 89–94."
+    },
+    "kister1992": {
+      "key": "kister1992",
+      "citation": "Kister, H. Z. (1992). Distillation Design. McGraw-Hill."
+    },
+    "seader2011": {
+      "key": "seader2011",
+      "citation": "Seader, J. D., Henley, E. J., Roper, D. K. (2011). Separation Process Principles, 3rd ed. Wiley."
+    },
+    "faraday": {
+      "key": "faraday",
+      "citation": "Bard, A. J., Faulkner, L. R. (2001). Electrochemical Methods, 2nd ed. Wiley (Faraday's law)."
+    },
+    "thesis": {
+      "key": "thesis",
+      "citation": "Villota, S. (2026). Herramientas de Diseño para Captura de Carbono por Absorción en Sectores Difíciles de Abatir. Undergraduate thesis, Universidad de los Andes."
+    },
+    "peters2003": {
+      "key": "peters2003",
+      "citation": "Peters, M. S., Timmerhaus, K. D., West, R. E. (2003). Plant Design and Economics for Chemical Engineers, 5th ed. McGraw-Hill (capital recovery factor)."
+    }
+  }
+}

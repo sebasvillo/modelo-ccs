@@ -19,7 +19,10 @@ from .models import (
 
 
 def crf(i: float, n: int) -> float:
-    """Capital recovery factor."""
+    """Capital recovery factor.
+
+    Equations: tea.crf.
+    """
     return i * (1 + i) ** n / ((1 + i) ** n - 1)
 
 
@@ -28,12 +31,18 @@ def safe_div(a: float, b: float, eps: float = 1e-12) -> float:
 
 
 def annual_t_from_mol_s(CO2_mol_s: float, hours_per_year: float) -> float:
-    """CO2 mol/s → t/y at 44.01 g/mol."""
+    """CO2 mol/s → t/y at 44.01 g/mol.
+
+    Equations: tea.annual_tonnage.
+    """
     return CO2_mol_s * 44.01 * 3600.0 * hours_per_year / 1e6
 
 
 def column_capex(D_m: float, H_packed_m: float, P_bar: float, tea: TEASpec) -> ColumnCapex:
-    """Packed-column CAPEX: (shell + packing + internals) × pressure factor × installation."""
+    """Packed-column CAPEX: (shell + packing + internals) × pressure factor × installation.
+
+    Equations: tea.column_capex.
+    """
     A_cs_m2 = math.pi * D_m**2 / 4.0
     shell_area_m2 = math.pi * D_m * H_packed_m
     packed_volume_m3 = A_cs_m2 * H_packed_m
@@ -66,7 +75,10 @@ def design_costs(
     P_bar: float,
     tea: TEASpec,
 ) -> dict[str, float]:
-    """CAPEX, OPEX, LCOC and indirect emissions of one design (legacy cell 8)."""
+    """CAPEX, OPEX, LCOC and indirect emissions of one design (legacy cell 8).
+
+    Equations: tea.lcoc, tea.indirect_emissions.
+    """
     hours = tea.hours_per_year
     P_total_W = blower_power_W + pump_power_W + cell.P_cell_W
     P_total_kW = P_total_W / 1000.0
