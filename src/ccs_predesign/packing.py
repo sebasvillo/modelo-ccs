@@ -68,8 +68,8 @@ def mass_transfer_coefficients(
     T_K: float,
     P_Pa: float,
     comp_gas: dict[str, float],
-    Qg_m3_s: float,
-    Ql_m3_s: float,
+    uG_m_s: float,
+    uL_m_s: float,
     packing: Packing,
     C_NaOH_M: float,
     liquid_resistance_factor: float,
@@ -77,7 +77,7 @@ def mass_transfer_coefficients(
 ) -> dict[str, float]:
     """Film model: kG, kL and the overall volumetric coefficient KGa [1/s].
 
-    LEGACY(audit §2): velocities use a 1 m2 reference area, not the column area.
+    uG_m_s and uL_m_s are superficial velocities in the actual column (audit §2, E-002).
     LEGACY(audit §3): the liquid resistance is scaled by an undocumented tuning factor
     instead of the Henry constant.
     """
@@ -92,9 +92,8 @@ def mass_transfer_coefficients(
     a_spec = packing.a_spec_m2_m3
     d_h = 4.0 * eps / max(a_spec, 1e-12)
 
-    A_ref_m2 = 1  # LEGACY(audit §2)
-    uG = Qg_m3_s / A_ref_m2
-    uL = max(Ql_m3_s / A_ref_m2, 1e-12)
+    uG = uG_m_s
+    uL = max(uL_m_s, 1e-12)
 
     ReG = reynolds(rho_g, uG, d_h, mu_g)
     ReL = reynolds(rho_l, uL, d_h, mu_l)

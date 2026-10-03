@@ -72,7 +72,7 @@ def simulate_absorber(
 
     def coefficients(E: float) -> dict[str, float]:
         return packing.mass_transfer_coefficients(
-            T_K, P_Pa, comp_wet, Qg_m3_s, Ql_m3_s, pk, solv.NaOH_M,
+            T_K, P_Pa, comp_wet, uG, uL, pk, solv.NaOH_M,
             spec.liquid_resistance_factor, E=E,
         )  # fmt: skip
 
