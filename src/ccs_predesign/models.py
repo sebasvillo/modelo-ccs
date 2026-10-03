@@ -43,7 +43,6 @@ def _legacy_LG_grid() -> tuple[float, ...]:
 class AbsorberSpec(_Frozen):
     capture_target: float = Field(0.90, gt=0, lt=1)
     packing_name: str = "pall_ring_25mm"
-    H_eq: float = Field(0.04, ge=0, description="LEGACY: equilibrium slope y* = H_eq·x")
     k2_ref_L_mol_s: float = Field(8.5e3, gt=0, description="CO2 + OH- rate constant at 25 °C")
     max_height_m: float = Field(30.0, gt=0)
     dz_m: float = Field(0.02, gt=0)
@@ -156,7 +155,7 @@ class AbsorberResult(_Frozen):
     z_m: tuple[float, ...]
     yCO2: tuple[float, ...]
     x_loading: tuple[float, ...]
-    y_star: tuple[float, ...]
+    y_star: tuple[float, ...] = Field(description="CO2 equilibrium over the local liquid")
     rate_indicator: tuple[float, ...]
     OH_mol_m3: tuple[float, ...] = Field(description="local hydroxide concentration")
     Ha_profile: tuple[float, ...]

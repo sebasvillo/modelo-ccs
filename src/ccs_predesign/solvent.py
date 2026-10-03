@@ -73,3 +73,29 @@ def naoh_ions_kmol_m3(C_NaOH_M: float) -> dict[str, float]:
     LEGACY(audit §4): carbonate formed along the column is not accounted for yet.
     """
     return {"Na+": C_NaOH_M, "OH-": C_NaOH_M}
+
+
+def carbonate_constants(T_K: float) -> tuple[float, float, float]:
+    """Ideal-solution constants K1, K2 [mol/L] of carbonic acid and Kw [mol2/L2] of water.
+
+    K1, K2: Plummer & Busenberg (1982), Geochim. Cosmochim. Acta 46, 1011 (0–90 °C).
+    Kw: Harned & Owen form, log Kw = −4470.99/T + 6.0875 − 0.01706·T (0–60 °C).
+    Provenance: literature. At 25 °C: pK1 6.352, pK2 10.329, pKw 13.995.
+    """
+    lgT = math.log10(T_K)
+    log_K1 = -356.3094 - 0.06091964 * T_K + 21834.37 / T_K + 126.8339 * lgT - 1684915.0 / T_K**2
+    log_K2 = -107.8871 - 0.03252849 * T_K + 5151.79 / T_K + 38.92561 * lgT - 563713.9 / T_K**2
+    log_Kw = -4470.99 / T_K + 6.0875 - 0.01706 * T_K
+    return 10.0**log_K1, 10.0**log_K2, 10.0**log_Kw
+
+
+def free_CO2_equilibrium_mol_m3(T_K: float, OH_mol_m3: float, CO3_mol_m3: float) -> float:
+    """Dissolved CO2 in equilibrium with OH-/CO3-- : [CO2] = Kw²·[CO3--]/(K1·K2·[OH-]²).
+
+    Ideal solution (activity coefficients = 1). Infinite when no hydroxide is left.
+    """
+    if OH_mol_m3 <= 0.0:
+        return math.inf
+    K1, K2, Kw = carbonate_constants(T_K)
+    OH_M, CO3_M = OH_mol_m3 / 1000.0, CO3_mol_m3 / 1000.0
+    return 1000.0 * Kw**2 * CO3_M / (K1 * K2 * OH_M**2)

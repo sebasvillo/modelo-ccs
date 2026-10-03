@@ -33,11 +33,14 @@ def test_legacy_exponent_was_not_dimensionless():
 
 @pytest.mark.parametrize("Z_m", [0.15, 0.25, 0.35])
 def test_capture_matches_analytic_ntu(Z_m):
-    """With y* = 0, y_out/y_in = exp(−Σ K_G·a·c_tot·dz/G''), using the local K_G·a profile."""
+    """y_out/y_in = exp(−Σ K_G·a·c_tot·dz/G''), using the local K_G·a profile.
+
+    Exact for y* = 0; with excess OH- the equilibrium back-pressure is ~1e-10 (E-006).
+    """
     r = simulate_absorber(
         BENCH_GAS,
         Solvent(NaOH_M=0.8),
-        AbsorberSpec(capture_target=0.999999, max_height_m=Z_m, H_eq=0.0, dz_m=0.01),
+        AbsorberSpec(capture_target=0.999999, max_height_m=Z_m, dz_m=0.01),
         LG_vol=0.1235,
         D_col_fixed_m=0.150,
     )
@@ -46,7 +49,8 @@ def test_capture_matches_analytic_ntu(Z_m):
     dz = [b - a for a, b in itertools.pairwise(r.z_m)]
     ntu = sum(K * c_tot * h / G_flux for K, h in zip(r.KGa_profile_1_s[:-1], dz, strict=True))
     assert not r.solvent_exhausted
-    assert r.yCO2_out / r.yCO2_wet_in == pytest.approx(math.exp(-ntu), rel=1e-9)
+    assert max(r.y_star) < 1e-8
+    assert r.yCO2_out / r.yCO2_wet_in == pytest.approx(math.exp(-ntu), rel=1e-5)
     assert r.NTU == pytest.approx(ntu, rel=1e-9)
 
 

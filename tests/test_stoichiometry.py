@@ -27,11 +27,16 @@ def test_hydroxide_balance_closes(C, LG):
     assert consumed == pytest.approx(2.0 * r.CO2_captured_mol_s, rel=1e-9)
 
 
-def test_legacy_base_case_is_flagged_as_exhausted():
+def test_legacy_base_case_runs_out_of_hydroxide():
+    """Legacy base (1.5 M, L/G 0.005): OH- is nearly used up and the target is flagged.
+
+    Since E-006 the equilibrium back-pressure stops absorption as OH- -> 0, so the hard
+    stoichiometric clip is rarely needed; the capacity warning still fires.
+    """
     r = simulate_absorber(FlueGas(), Solvent(NaOH_M=1.5), AbsorberSpec(), 0.005)
-    assert r.solvent_exhausted
     assert not r.reached_target
-    assert any("exhausted" in w for w in r.warnings)
+    assert r.OH_mol_m3[-1] < 0.01 * r.OH_mol_m3[0]
+    assert r.CO2_captured_mol_s <= r.OH_capacity_CO2_mol_s
     assert any("below the capture target" in w for w in r.warnings)
 
 
