@@ -1,11 +1,11 @@
 {
-  "errata_id": "E-005",
+  "errata_id": "E-006",
   "outputs": {
     "base_case": {
       "LG_vol": 0.06,
       "height_m": 30.01999999999945,
       "D_col_m": 4.186856335681482,
-      "capture_achieved": 0.8795528036369675,
+      "capture_achieved": 0.8798273914594231,
       "reached_target": false,
       "KGa_1_s": 0.29283422000522585,
       "kG_m_s": 0.37654344153454095,
@@ -15,46 +15,46 @@
       "deltaP_Pa": 3877.4819724535005,
       "blower_power_W": 306647.63051842997,
       "pump_power_W": 931977.1610235568,
-      "CO2_captured_mol_s": 408.76300348190944,
+      "CO2_captured_mol_s": 408.89061531210587,
       "feasible": false,
-      "A_cell_m2": 22943.245765295407,
-      "P_cell_W": 65234326.91607379,
-      "P_total_W": 66472951.70761578,
-      "E_cell_kWh_t": 1007.2812150933094,
-      "LCOC_usd_t": 128.3077072368828,
-      "capex_total_usd": 13947575.476170497
+      "A_cell_m2": 22950.408423260575,
+      "P_cell_W": 65254692.43785164,
+      "P_total_W": 66493317.229393624,
+      "E_cell_kWh_t": 1007.2812150933092,
+      "LCOC_usd_t": 128.3065820249288,
+      "capex_total_usd": 13950583.792515866
     },
     "optimisation_coarse": {
       "NaOH_M": 1.1153846153846154,
       "LG_vol": 0.07,
-      "LCOC_usd_t": 128.8240687443362,
-      "capex_total_usd": 14063564.180667704,
-      "opex_total_usd_y": 65476006.244695544,
+      "LCOC_usd_t": 128.823017132601,
+      "capex_total_usd": 14066210.829780603,
+      "opex_total_usd_y": 65493440.35453964,
       "height_m": 30.01999999999945,
       "D_col_m": 4.1963006355670895,
-      "capture_achieved": 0.8846114890044876,
+      "capture_achieved": 0.884852555582606,
       "feasible": false
     },
     "optimisation_fine": {
       "NaOH_M": 1.2153846153846155,
       "LG_vol": 0.08,
-      "LCOC_usd_t": 128.99907442177482,
-      "capex_total_usd": 14109224.736775968,
-      "opex_total_usd_y": 65767354.6064978,
+      "LCOC_usd_t": 128.99807907204604,
+      "capex_total_usd": 14111562.521181684,
+      "opex_total_usd_y": 65782754.25093201,
       "height_m": 30.01999999999945,
       "D_col_m": 4.193834865547074,
-      "capture_achieved": 0.8873161481406241,
+      "capture_achieved": 0.8875292711599634,
       "feasible": false
     },
     "optimisation_structured_250Y": {
-      "NaOH_M": 1.7923076923076922,
+      "NaOH_M": 1.8589743589743586,
       "LG_vol": 0.018812631578947366,
-      "LCOC_usd_t": 126.67619155571772,
-      "capex_total_usd": 14182004.68344489,
-      "opex_total_usd_y": 65494552.67890177,
-      "height_m": 25.139999999999553,
-      "D_col_m": 4.793685856332887,
-      "capture_achieved": 0.9000456414120208,
+      "LCOC_usd_t": 126.66840795328376,
+      "capex_total_usd": 14172333.050573,
+      "opex_total_usd_y": 65491852.794482805,
+      "height_m": 25.099999999999554,
+      "D_col_m": 4.791836510683425,
+      "capture_achieved": 0.9000495381110655,
       "feasible": true,
       "n_feasible_coarse": 198
     },
@@ -65,7 +65,7 @@
         "LG_vol": 0.1235483870967742,
         "height_m": 0.16,
         "D_col_m": 0.0154,
-        "capture_achieved": 0.10482213607781639,
+        "capture_achieved": 0.10482330671789021,
         "reached_target": false,
         "KGa_1_s": 0.2037826351237812,
         "kG_m_s": 0.05967589723520276,
@@ -75,7 +75,7 @@
         "deltaP_Pa": 0.11849361381789283,
         "blower_power_W": 9.323674961546966e-06,
         "pump_power_W": 0.4717521743956304,
-        "CO2_captured_mol_s": 3.5704178742346725e-05
+        "CO2_captured_mol_s": 3.570457748200233e-05
       },
       {
         "H_bed_m": 0.15,
@@ -83,7 +83,7 @@
         "LG_vol": 0.1235483870967742,
         "height_m": 0.16,
         "D_col_m": 0.0154,
-        "capture_achieved": 0.19742178679754077,
+        "capture_achieved": 0.19742607980129553,
         "reached_target": false,
         "KGa_1_s": 0.39709636397007725,
         "kG_m_s": 0.05967589723520276,
@@ -93,7 +93,7 @@
         "deltaP_Pa": 0.11849361381789283,
         "blower_power_W": 9.323674961546966e-06,
         "pump_power_W": 0.4796586354190209,
-        "CO2_captured_mol_s": 6.724517384591451e-05
+        "CO2_captured_mol_s": 6.724663611504136e-05
       },
       {
         "H_bed_m": 0.15,
@@ -101,7 +101,7 @@
         "LG_vol": 0.1235483870967742,
         "height_m": 0.16,
         "D_col_m": 0.0154,
-        "capture_achieved": 0.19316607842591388,
+        "capture_achieved": 0.1931701199042722,
         "reached_target": false,
         "KGa_1_s": 0.3864939282895206,
         "kG_m_s": 0.05967589723520276,
@@ -111,7 +111,7 @@
         "deltaP_Pa": 0.11849361381789283,
         "blower_power_W": 9.323674961546966e-06,
         "pump_power_W": 0.48756509644241125,
-        "CO2_captured_mol_s": 6.579560815243282e-05
+        "CO2_captured_mol_s": 6.579698474778843e-05
       },
       {
         "H_bed_m": 0.35,
@@ -119,7 +119,7 @@
         "LG_vol": 0.1235483870967742,
         "height_m": 0.36000000000000004,
         "D_col_m": 0.0154,
-        "capture_achieved": 0.21406187610113078,
+        "capture_achieved": 0.2140672473834983,
         "reached_target": false,
         "KGa_1_s": 0.2037826351237812,
         "kG_m_s": 0.05967589723520276,
@@ -129,7 +129,7 @@
         "deltaP_Pa": 0.2666106310902589,
         "blower_power_W": 2.0978268663480675e-05,
         "pump_power_W": 0.48103863452152856,
-        "CO2_captured_mol_s": 7.291306752767402e-05
+        "CO2_captured_mol_s": 7.291489707659279e-05
       },
       {
         "H_bed_m": 0.35,
@@ -137,7 +137,7 @@
         "LG_vol": 0.1235483870967742,
         "height_m": 0.36000000000000004,
         "D_col_m": 0.0154,
-        "capture_achieved": 0.38820711193648283,
+        "capture_achieved": 0.3882264499629785,
         "reached_target": false,
         "KGa_1_s": 0.39709636397007725,
         "kG_m_s": 0.05967589723520276,
@@ -147,7 +147,7 @@
         "deltaP_Pa": 0.2666106310902589,
         "blower_power_W": 2.0978268663480675e-05,
         "pump_power_W": 0.4891007345414425,
-        "CO2_captured_mol_s": 0.0001322298574734324
+        "CO2_captured_mol_s": 0.00013223644432980034
       },
       {
         "H_bed_m": 0.35,
@@ -155,7 +155,7 @@
         "LG_vol": 0.1235483870967742,
         "height_m": 0.36000000000000004,
         "D_col_m": 0.0154,
-        "capture_achieved": 0.38193563862792557,
+        "capture_achieved": 0.3819540532964758,
         "reached_target": false,
         "KGa_1_s": 0.3864939282895206,
         "kG_m_s": 0.05967589723520276,
@@ -165,7 +165,7 @@
         "deltaP_Pa": 0.2666106310902589,
         "blower_power_W": 2.0978268663480675e-05,
         "pump_power_W": 0.49716283456135635,
-        "CO2_captured_mol_s": 0.00013009368841253522
+        "CO2_captured_mol_s": 0.00013009996075769056
       }
     ]
   }
