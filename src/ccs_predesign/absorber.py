@@ -70,10 +70,12 @@ def simulate_absorber(
     OH_mol_m3 = solv.NaOH_M * 1000.0
     k1_pseudo = k2 * OH_mol_m3
 
+    H_cc = solvent.henry_cc_CO2(T_K, solvent.naoh_ions_kmol_m3(solv.NaOH_M))
+
     def coefficients(E: float) -> dict[str, float]:
         return packing.mass_transfer_coefficients(
             T_K, P_Pa, comp_wet, uG, uL, pk, solv.NaOH_M,
-            spec.liquid_resistance_factor, E=E,
+            H_cc, E=E,
         )  # fmt: skip
 
     props0 = coefficients(1.0)
@@ -155,6 +157,7 @@ def simulate_absorber(
         wetting_fraction=props["wet"],
         Ha=Ha,
         E=E,
+        H_cc_CO2=H_cc,
         k1_pseudo_1_s=k1_pseudo,
         D_g_m2_s=props["Dg"],
         D_l_m2_s=props["Dl"],
