@@ -105,7 +105,7 @@ def simulate_absorber(
     capacity_mol_s = OH_in_mol_s / OH_PER_CO2
 
     z_vals, y_vals, x_vals = [0.0], [y_in], [0.0]
-    ystar_vals, rate_vals = [spec.H_eq * 0.0], [0.0]
+    ystar_vals, rate_vals = [0.0], [0.0]
     OH_vals, Ha_vals, E_vals, KGa_vals = [OH_mol_m3], [Ha], [E], [KGa]
     y, x, z, OH, ntu_total = y_in, 0.0, 0.0, OH_mol_m3, 0.0
     reached = exhausted = False
@@ -113,7 +113,8 @@ def simulate_absorber(
     while z < spec.max_height_m:
         # explicit step: chemistry evaluated at the start of the slice (node values)
         step = ntu_increment(KGa_loc, c_tot, G_flux, spec.dz_m)
-        y_star = spec.H_eq * x
+        CO3 = (OH_mol_m3 - OH) / OH_PER_CO2  # fresh solvent carries no carbonate
+        y_star = min(H_cc * solvent.free_CO2_equilibrium_mol_m3(T_K, OH, CO3) / c_tot, y)
         driving0 = max(y - y_star, 0.0)
         y_new = max(y_star + (y - y_star) * math.exp(-step), 0.0)
         dn_mol_s = G_mol_s * (y - y_new)
@@ -131,7 +132,8 @@ def simulate_absorber(
         z_vals.append(z)
         y_vals.append(y)
         x_vals.append(x)
-        ystar_vals.append(spec.H_eq * x)
+        CO3 = (OH_mol_m3 - OH) / OH_PER_CO2
+        ystar_vals.append(min(H_cc * solvent.free_CO2_equilibrium_mol_m3(T_K, OH, CO3) / c_tot, y))
         rate_vals.append(KGa_loc * driving0)
         Ha_loc, E_loc, KGa_loc = local_KGa(OH)
         OH_vals.append(OH)
