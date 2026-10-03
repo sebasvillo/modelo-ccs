@@ -19,9 +19,13 @@ class _Frozen(BaseModel):
 class Packing(_Frozen):
     a_spec_m2_m3: float = Field(gt=0, description="specific surface area")
     void_fraction: float = Field(gt=0, lt=1)
-    dp_eq_m: float = Field(gt=0, description="equivalent particle diameter")
-    wetting_ref_uL_m_s: float = Field(gt=0, description="reference liquid velocity for wetting")
+    dp_eq_m: float = Field(gt=0, description="equivalent particle (nominal) diameter")
+    wetting_ref_uL_m_s: float = Field(gt=0, description="LEGACY wetting closure parameter")
     flood_coeff: float = Field(gt=0)
+    kind: Literal["random", "structured"] = "random"
+    sigma_c_N_m: float | None = Field(
+        None, gt=0, description="critical surface tension of the packing material (Onda)"
+    )
 
 
 class FlueGas(_Frozen):
