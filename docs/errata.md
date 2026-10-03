@@ -4,6 +4,12 @@ Every change that moves a number reported by the thesis or by the legacy noteboo
 plus an updated test. Golden masters are never rebaselined silently, and numbers are never tuned back
 toward the thesis values. Audit references point to [`audit-2026-09.md`](audit-2026-09.md).
 
+After adding a row, regenerate the snapshot with `uv run python tests/golden/snapshot.py E-00N`;
+`tests/golden/test_snapshot.py` fails if the snapshot is not tied to the latest row.
+
+Old values refer to the legacy notebook (`legacy/M9_Integracion.ipynb`, clean kernel) unless
+marked *thesis*, which refers to the thesis document.
+
 | id | equation / module | old value | new value | cause | test | PR |
 |----|-------------------|-----------|-----------|-------|------|----|
 | E-000 | *(template)* `absorber.py`, Eq. 2.xx | H = … m | H = … m | audit §… : short reason | `tests/…::test_…` | #… |

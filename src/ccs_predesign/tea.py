@@ -6,6 +6,7 @@ from .absorber import simulate_absorber
 from .cell import electrochemical_regeneration
 from .models import (
     AbsorberSpec,
+    CellResult,
     CellSpec,
     ColumnCapex,
     DesignPoint,
@@ -56,6 +57,65 @@ def column_capex(D_m: float, H_packed_m: float, P_bar: float, tea: TEASpec) -> C
     )
 
 
+def design_costs(
+    D_col_m: float,
+    height_m: float,
+    blower_power_W: float,
+    pump_power_W: float,
+    CO2_captured_mol_s: float,
+    CO2_out_mol_s: float,
+    cell: CellResult,
+    P_bar: float,
+    tea: TEASpec,
+) -> dict[str, float]:
+    """CAPEX, OPEX, LCOC and indirect emissions of one design (legacy cell 8)."""
+    hours = tea.hours_per_year
+    P_total_W = blower_power_W + pump_power_W + cell.P_cell_W
+    P_total_kW = P_total_W / 1000.0
+
+    captured_t_y = annual_t_from_mol_s(CO2_captured_mol_s, hours)
+    t_per_h = safe_div(captured_t_y, hours)
+
+    col = column_capex(D_col_m, height_m, P_bar, tea)
+    capex_cell = tea.cell_capex_usd_m2 * cell.A_cell_m2
+    capex_blower = tea.blower_capex_usd_kW * (blower_power_W / 1000.0)
+    capex_pump = tea.pump_capex_usd_kW * (pump_power_W / 1000.0)
+    capex_total = col.installed_usd + capex_cell + capex_blower + capex_pump
+
+    opex_fixed = tea.fixed_om_fraction * capex_total
+    opex_elec = hours * P_total_kW * tea.electricity_usd_kWh
+    opex_solvent = tea.solvent_makeup_usd_t * captured_t_y
+    opex_water = tea.water_chem_usd_t * captured_t_y
+    opex_total = opex_fixed + opex_elec + opex_solvent + opex_water
+
+    annualized = capex_total * crf(tea.discount_rate, tea.project_life_y)
+    indirect_kg_y = hours * P_total_kW * tea.grid_EF_kgCO2e_kWh
+
+    return {
+        "P_total_W": P_total_W,
+        "CO2_captured_t_y": captured_t_y,
+        "CO2_stack_t_y": annual_t_from_mol_s(CO2_out_mol_s, hours),
+        "CO2_product_t_y": annual_t_from_mol_s(cell.CO2_released_mol_s, hours),
+        "E_cell_kWh_t": safe_div(cell.P_cell_W / 1000.0, t_per_h),
+        "E_total_kWh_t": safe_div(P_total_W / 1000.0, t_per_h),
+        "capex_column_usd": col.installed_usd,
+        "capex_cell_usd": capex_cell,
+        "capex_blower_usd": capex_blower,
+        "capex_pump_usd": capex_pump,
+        "capex_total_usd": capex_total,
+        "annualized_capex_usd_y": annualized,
+        "opex_fixed_usd_y": opex_fixed,
+        "opex_electricity_usd_y": opex_elec,
+        "opex_solvent_usd_y": opex_solvent,
+        "opex_water_chem_usd_y": opex_water,
+        "opex_total_usd_y": opex_total,
+        "LCOC_usd_t": safe_div(annualized + opex_total, captured_t_y),
+        "indirect_kgCO2e_y": indirect_kg_y,
+        "indirect_tCO2e_y": indirect_kg_y / 1000.0,
+        "indirect_kgCO2e_t": safe_div(indirect_kg_y, captured_t_y),
+    }
+
+
 def evaluate_design_point(
     flue: FlueGas,
     solv: Solvent,
@@ -70,56 +130,18 @@ def evaluate_design_point(
     """
     res = simulate_absorber(flue, solv, absorber, LG_vol)
     cell = electrochemical_regeneration(res.CO2_captured_mol_s, solv.NaOH_M, cell_spec)
-    hours = tea.hours_per_year
-
-    P_total_W = res.blower_power_W + res.pump_power_W + cell.P_cell_W
-    P_total_kW = P_total_W / 1000.0
-
-    captured_t_y = annual_t_from_mol_s(res.CO2_captured_mol_s, hours)
-    t_per_h = safe_div(captured_t_y, hours)
-
-    col = column_capex(res.D_col_m, res.height_m, flue.P_bar, tea)
-    capex_cell = tea.cell_capex_usd_m2 * cell.A_cell_m2
-    capex_blower = tea.blower_capex_usd_kW * (res.blower_power_W / 1000.0)
-    capex_pump = tea.pump_capex_usd_kW * (res.pump_power_W / 1000.0)
-    capex_total = col.installed_usd + capex_cell + capex_blower + capex_pump
-
-    opex_fixed = tea.fixed_om_fraction * capex_total
-    opex_elec = hours * P_total_kW * tea.electricity_usd_kWh
-    opex_solvent = tea.solvent_makeup_usd_t * captured_t_y
-    opex_water = tea.water_chem_usd_t * captured_t_y
-    opex_total = opex_fixed + opex_elec + opex_solvent + opex_water
-
-    annualized = capex_total * crf(tea.discount_rate, tea.project_life_y)
-    indirect_kg_y = hours * P_total_kW * tea.grid_EF_kgCO2e_kWh
-
-    return DesignPoint(
-        NaOH_M=solv.NaOH_M,
-        LG_vol=LG_vol,
-        absorber=res,
-        cell=cell,
-        P_total_W=P_total_W,
-        CO2_captured_t_y=captured_t_y,
-        CO2_stack_t_y=annual_t_from_mol_s(res.CO2_out_mol_s, hours),
-        CO2_product_t_y=annual_t_from_mol_s(cell.CO2_released_mol_s, hours),
-        E_cell_kWh_t=safe_div(cell.P_cell_W / 1000.0, t_per_h),
-        E_total_kWh_t=safe_div(P_total_W / 1000.0, t_per_h),
-        capex_column_usd=col.installed_usd,
-        capex_cell_usd=capex_cell,
-        capex_blower_usd=capex_blower,
-        capex_pump_usd=capex_pump,
-        capex_total_usd=capex_total,
-        annualized_capex_usd_y=annualized,
-        opex_fixed_usd_y=opex_fixed,
-        opex_electricity_usd_y=opex_elec,
-        opex_solvent_usd_y=opex_solvent,
-        opex_water_chem_usd_y=opex_water,
-        opex_total_usd_y=opex_total,
-        LCOC_usd_t=safe_div(annualized + opex_total, captured_t_y),
-        indirect_kgCO2e_y=indirect_kg_y,
-        indirect_tCO2e_y=indirect_kg_y / 1000.0,
-        indirect_kgCO2e_t=safe_div(indirect_kg_y, captured_t_y),
+    costs = design_costs(
+        res.D_col_m,
+        res.height_m,
+        res.blower_power_W,
+        res.pump_power_W,
+        res.CO2_captured_mol_s,
+        res.CO2_out_mol_s,
+        cell,
+        flue.P_bar,
+        tea,
     )
+    return DesignPoint(NaOH_M=solv.NaOH_M, LG_vol=LG_vol, absorber=res, cell=cell, **costs)
 
 
 def tea_summary(

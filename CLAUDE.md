@@ -62,8 +62,11 @@ Details in `docs/audit-2026-09.md`.
 8. Correlations mislabelled (Sh "Onda", wetting "Onda", Ergun for structured) → proper Onda / Billet–Schultes / Rocha–Bravo–Fair; TPMS packings from Ellebracht et al. 2023 data.
 9. TEA: 8760 vs 8000 h, 22.414 vs 44.615, optimiser ignores infeasible points, current density not optimised.
 
-## Golden master (phase 0)
-`tests/golden/test_legacy_notebook.py` (marker `slow`) executes a temporary copy of the legacy notebook with nbclient (Agg backend, temp dir, saved order, `allow_errors` because cell 6 raised `KeyError: 'T_gas_abs_C'` in the saved run) and compares stdout with the saved outputs. All code cells reproduce byte-for-byte except cell 2, which read stale kernel globals in the saved session (LCOC 123.20 saved vs 123.17 from a clean kernel); it is checked against clean-kernel values and a strict `xfail` documents the gap (audit 6.7).
+## Safety nets (tests/golden/)
+1. `test_legacy_notebook.py` (slow): replays the frozen notebook with nbclient and compares its stdout with the saved outputs. Always green; it only tests the legacy file. All cells reproduce byte-for-byte except cell 2 (stale kernel state in the saved run: LCOC 123.20 saved vs 123.17 clean; strict xfail, audit §7). Cell 6 raises `KeyError: 'T_gas_abs_C'` in the saved run too.
+2. `test_components_equivalence.py`: every ported function equals its legacy twin bit-for-bit (properties, correlations, cell, TEA costing, scores). When a physics PR changes a function, replace its test here by one tied to the errata entry.
+3. `test_snapshot.py` + `snapshots/model_outputs.json`: headline outputs (base case, optimisation, bench) at rel. tol. 1e-9, tied to the latest id in `docs/errata.md`. A physics PR adds the errata row, then regenerates with `uv run python tests/golden/snapshot.py E-00N`. Never regenerate without an errata row.
+`test_cell1_equivalence.py` and `test_tea_equivalence.py` prove the phase-1 refactor end-to-end; they are retired (deleted, with a note in the errata) by the first PR that moves absorber numbers.
 
 ## Validation targets
 - Kinetics vs Pohorecki & Moniuk (1988). kLa vs Ellebracht et al. (2023) NaOH/TPMS data. Bench data: `data/lab2_titration.csv` (12 runs, thesis Table 3.1; to be added).
