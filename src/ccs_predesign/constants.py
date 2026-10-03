@@ -6,9 +6,7 @@ P_STD_Pa = 101325.0
 T_STD_K = 273.15
 G_m_s2 = 9.81
 
-# Molar volume basis used by the legacy model for normal cubic metres.
-# LEGACY(audit §7): 1 Nm3 = 44.615 mol (0 °C, 1 atm); the legacy TEA also uses 22.414 L/mol
-# elsewhere. Kept until the TEA is unified.
+# Normal cubic metre (0 °C, 1 atm): 44.615 mol, i.e. 22.414 L/mol (ideal gas).
 MOL_PER_NM3 = 44.615
 
 MW_kg_mol = {

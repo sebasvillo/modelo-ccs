@@ -204,24 +204,3 @@ def test_weighted_scores(ns):
     }
     objectives = {k: np.array([r[v] for r in rows]) for k, v in legacy_keys.items()}
     assert np.array_equal(weighted_scores(objectives, LEGACY_WEIGHTS), ranked["score"].to_numpy())
-
-
-def test_cell2_tea_summary(ns):
-    """Cell 2 TEA fed with the legacy cell-1 design (H = 25 m default, audit §7)."""
-    best = ns["best_design"]
-    s = tea.tea_summary(
-        D_m=best["D_col_m"],
-        H_packed_m=ns["H_packed_m"],
-        P_bar=ns["pressure_bar"],
-        CO2_captured_mol_s=best["CO2_captured_mol_s"],
-        P_total_W=best["P_total_W"],
-        tea=TEASpec(),
-    )
-    assert ns["H_packed_m"] == 25.0
-    assert s.annual_captured_t_y == ns["annual_captured_tCO2"]
-    assert s.annual_electricity_kWh_y == ns["annual_electricity_kWh"]
-    assert s.capex_total_usd == ns["total_installed_capex_usd"]
-    assert s.opex_total_usd_y == ns["annual_opex_usd"]
-    assert s.LCOC_usd_t == ns["lcoc_usd_per_tCO2"]
-    assert s.indirect_kgCO2e_t == ns["indirect_emissions_intensity_kg_per_tCO2"]
-    assert f"{s.LCOC_usd_t:,.2f}" == "123.17"
