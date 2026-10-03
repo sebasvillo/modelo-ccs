@@ -63,17 +63,26 @@ def schmidt(mu_Pa_s: float, rho_kg_m3: float, D_m2_s: float) -> float:
 
 
 def sherwood_gas(Re: float, Sc: float) -> float:
-    """LEGACY(audit §9): Ranz–Marshall/Wakao particle form, cited in the thesis as Onda."""
+    """LEGACY(audit §9): Ranz–Marshall/Wakao particle form, cited in the thesis as Onda.
+
+    Equations: packing.sherwood_particle.
+    """
     return 2.0 + 1.10 * (Re**0.70) * (Sc ** (1.0 / 3.0))
 
 
 def sherwood_liquid(Re: float, Sc: float) -> float:
-    """LEGACY(audit §9): same particle form as sherwood_gas, exponent 0.60."""
+    """LEGACY(audit §9): same particle form as sherwood_gas, exponent 0.60.
+
+    Equations: packing.sherwood_particle.
+    """
     return 2.0 + 1.10 * (Re**0.60) * (Sc ** (1.0 / 3.0))
 
 
 def wetting_fraction(uL_m_s: float, packing: Packing) -> float:
-    """LEGACY(audit §9): exponential own closure, not Onda's wetting correlation."""
+    """LEGACY(audit §9): exponential own closure, not Onda's wetting correlation.
+
+    Equations: packing.wetting_legacy.
+    """
     u_ref = packing.wetting_ref_uL_m_s
     return float(np.clip(0.20 + 0.80 * (1.0 - np.exp(-uL_m_s / max(u_ref, 1e-9))), 0.20, 1.0))
 
@@ -85,6 +94,8 @@ def liquid_film_kL(
 
     Same correlation as mass_transfer_coefficients, evaluated on its own so the absorber can
     follow the local liquid temperature (errata E-013).
+
+    Equations: packing.sherwood_particle.
     """
     rho_l = solvent.density_kg_m3(T_K, C_NaOH_M)
     mu_l = solvent.viscosity_Pa_s(T_K, C_NaOH_M)
@@ -111,6 +122,8 @@ def mass_transfer_coefficients(
     uG_m_s and uL_m_s are superficial velocities in the actual column (audit §2, E-002).
     Overall gas-side coefficient 1/K_G = 1/k_G + H_cc/(E·k_L), with H_cc = c_G/c_L the
     dimensionless Henry constant (two-film theory; audit §3, errata E-003).
+
+    Equations: absorber.two_film.
     """
     rho_g = gas.density_ideal_kg_m3(T_K, P_Pa, comp_gas)
     mu_g = gas.viscosity_sutherland_air_Pa_s(T_K)
@@ -167,7 +180,10 @@ def mass_transfer_coefficients(
 
 
 def pressure_drop_ergun_Pa_m(rho_g: float, mu_g: float, uG_m_s: float, packing: Packing) -> float:
-    """LEGACY(audit §9): Ergun is for particle beds, also applied to structured packings."""
+    """LEGACY(audit §9): Ergun is for particle beds, also applied to structured packings.
+
+    Equations: packing.ergun.
+    """
     eps = packing.void_fraction
     dp = packing.dp_eq_m
     term1 = 150.0 * (1.0 - eps) ** 2 * mu_g * uG_m_s / max((eps**3) * dp**2, 1e-18)
@@ -176,6 +192,7 @@ def pressure_drop_ergun_Pa_m(rho_g: float, mu_g: float, uG_m_s: float, packing: 
 
 
 def flooding_velocity_m_s(rho_g: float, rho_l: float, packing: Packing) -> float:
+    """Equations: packing.flooding_legacy."""
     eps = packing.void_fraction
     dp = packing.dp_eq_m
     C = packing.flood_coeff
@@ -187,7 +204,10 @@ def flooding_velocity_m_s(rho_g: float, rho_l: float, packing: Packing) -> float
 def column_diameter_m(
     Qg_m3_s: float, rho_g: float, rho_l: float, packing: Packing, flood_frac: float
 ) -> tuple[float, float, float]:
-    """Diameter from a fraction of the flooding velocity. Returns (D, v_flood, v_oper)."""
+    """Diameter from a fraction of the flooding velocity. Returns (D, v_flood, v_oper).
+
+    Equations: packing.column_diameter.
+    """
     v_flood = flooding_velocity_m_s(rho_g, rho_l, packing)
     v_oper = max(0.05, flood_frac * v_flood)
     A = Qg_m3_s / v_oper
@@ -202,6 +222,8 @@ def onda_wetted_area_m2_m3(
 
     Re = L/(a·μ), Fr = L²·a/(ρ²·g), We = L²/(ρ·σ·a), L the liquid mass flux [kg/(m2·s)].
     Provenance: literature (Onda, Takeuchi & Okumoto 1968, J. Chem. Eng. Japan 1, 56).
+
+    Equations: packing.onda_wetted_area.
     """
     a = packing.a_spec_m2_m3
     Re = L_kg_m2s / (a * mu_l)
@@ -214,7 +236,10 @@ def onda_wetted_area_m2_m3(
 def onda_kL_m_s(
     L_kg_m2s: float, a_w: float, rho_l: float, mu_l: float, D_l: float, packing: Packing
 ) -> float:
-    """kL·(ρ/(μ·g))^(1/3) = 0.0051 (L/(a_w·μ))^(2/3) Sc^(−1/2) (a·dp)^0.4 (Onda 1968)."""
+    """kL·(ρ/(μ·g))^(1/3) = 0.0051 (L/(a_w·μ))^(2/3) Sc^(−1/2) (a·dp)^0.4 (Onda 1968).
+
+    Equations: packing.onda_kl.
+    """
     Sc = mu_l / (rho_l * D_l)
     group = 0.0051 * (L_kg_m2s / (a_w * mu_l)) ** (2.0 / 3.0) * Sc**-0.5
     return (
@@ -226,6 +251,8 @@ def onda_kG_m_s(G_kg_m2s: float, rho_g: float, mu_g: float, D_g: float, packing:
     """kG/(a·D_G) = C (G/(a·μ))^0.7 Sc^(1/3) (a·dp)^−2, C = 5.23 (2.00 below 15 mm) (Onda 1968).
 
     kG in concentration units [m/s] (kG,p·R·T of the original).
+
+    Equations: packing.onda_kg.
     """
     a = packing.a_spec_m2_m3
     C = 5.23 if packing.dp_eq_m >= 0.015 else 2.00
@@ -238,7 +265,10 @@ def onda_kG_m_s(G_kg_m2s: float, rho_g: float, mu_g: float, D_g: float, packing:
 def gas_side_kG_m_s(
     T_K: float, P_Pa: float, comp_gas: dict[str, float], uG_m_s: float, packing: Packing
 ) -> float:
-    """Gas-film coefficient: Onda for random packings, legacy particle form for structured."""
+    """Gas-film coefficient: Onda for random packings, legacy particle form for structured.
+
+    Equations: packing.onda_kg.
+    """
     rho_g = gas.density_ideal_kg_m3(T_K, P_Pa, comp_gas)
     mu_g = gas.viscosity_sutherland_air_Pa_s(T_K)
     Dg = gas.diffusivity_CO2_in_air_m2_s(T_K, P_Pa)
@@ -255,6 +285,8 @@ def liquid_side(
     """kL [m/s], CO2 diffusivity D_l [m2/s] and interfacial area a_e [m2/m3] at the liquid T.
 
     Random packings: Onda (1968) wetted area and kL. Structured: legacy closures (flagged).
+
+    Equations: packing.onda_wetted_area, packing.onda_kl.
     """
     if packing.kind == "random" and packing.sigma_c_N_m is not None:
         rho_l = solvent.density_kg_m3(T_K, C_NaOH_M)

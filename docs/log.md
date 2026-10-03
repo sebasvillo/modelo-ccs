@@ -46,3 +46,8 @@ Three lines per working session: what was done, what was found, what comes next.
 - E-014 (#18): Onda (1968) kG, kL and wetted area for random packings; kL 4.4e-4 m/s, KGa 0.58 1/s; pall optimum H 16.3 m, LCOC 249.6 USD/t. Structured packings and hydraulics stay legacy, flagged with warnings.
 - #19: optional current-density optimisation per design point (CellSpec.optimize_j); with the legacy 420 USD/m² cell cost the optimum hits 50 mA/cm² (LCOC ~174 USD/t), so the cell cost needs a source (audit §12).
 - Blocked on sources from Sebas: Billet–Schultes / Rocha–Bravo–Fair constants, flooding/ΔP correlation, TPMS data (Ellebracht 2023), cell cost and j–V range.
+
+## 2026-10-03 · Session 10 · Equation catalog (CLAUDE.md rule 9)
+- `equations.py`: 48 equations with LaTeX, ES/EN meaning, 89 symbols with units, provenance, 20 references, validity ranges and errata links; exported to `equations.json`.
+- Every physics function cites its equation ids in the docstring; tests fail on a missing citation, unknown symbol/reference or a stale export.
+- Next: API (FastAPI) returning each output with its equation id and intermediate values; still waiting for packing/hydraulics/cell-cost sources.

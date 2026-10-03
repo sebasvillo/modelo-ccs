@@ -7,7 +7,10 @@ from .tea import annual_t_from_mol_s
 
 
 def run_case(inp: CaseInput) -> CaseResult:
-    """Annual figures use inp.tea.hours_per_year, the same basis as the TEA (errata E-009)."""
+    """Annual figures use inp.tea.hours_per_year, the same basis as the TEA (errata E-009).
+
+    Equations: tea.annual_tonnage.
+    """
     design = design_absorber_by_grid(inp.gas, inp.solvent, inp.absorber)
     best = design.best
     cell = electrochemical_regeneration(

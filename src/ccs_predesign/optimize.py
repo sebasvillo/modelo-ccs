@@ -38,7 +38,10 @@ def _minmax(values: np.ndarray) -> np.ndarray:
 
 
 def weighted_scores(objectives: dict[str, np.ndarray], weights: dict[str, float]) -> np.ndarray:
-    """Sum of weight × min–max normalised objective (lower is better), in weights order."""
+    """Sum of weight × min–max normalised objective (lower is better), in weights order.
+
+    Equations: optimize.weighted_score.
+    """
     score = None
     for key, w in weights.items():
         term = w * _minmax(np.asarray(objectives[key], dtype=float))
@@ -54,6 +57,8 @@ def choose_best(
     Only points that reach the capture target are ranked (audit §7, errata E-005). If none
     does, the point with the highest capture is returned with feasible=False and a warning.
     Infeasible points get a NaN score.
+
+    Equations: optimize.weighted_score.
     """
     weights = LEGACY_WEIGHTS if weights is None else weights
     feasible = [i for i, p in enumerate(points) if p.absorber.reached_target]
