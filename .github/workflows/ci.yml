@@ -26,3 +26,20 @@ jobs:
 
       - name: Tests (golden master included)
         run: uv run pytest -q --durations=5
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build API image
+        run: docker build -t modelo-ccs-api .
+
+      - name: Smoke test the container
+        run: |
+          docker run -d --name api -e PORT=8000 -p 8000:8000 modelo-ccs-api
+          for i in $(seq 1 30); do curl -sf localhost:8000/health && break; sleep 2; done
+          curl -sf -X POST localhost:8000/v1/case -H 'Content-Type: application/json' -d '{}' \
+            | python3 -c "import sys, json; d = json.load(sys.stdin); assert d['feasible'] and len(d['outputs']) > 10; print(d['errata_id'])"
+          docker logs api
