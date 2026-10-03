@@ -49,18 +49,43 @@ def weighted_scores(objectives: dict[str, np.ndarray], weights: dict[str, float]
 def choose_best(
     points: Sequence[DesignPoint], weights: dict[str, float] | None = None
 ) -> OptimizationResult:
-    """Weighted sum of min–max normalised objectives; first minimum wins.
+    """Weighted sum of min–max normalised objectives over the feasible points; lowest wins.
 
-    LEGACY(audit §7): infeasible points (capture target missed) are not filtered out.
+    Only points that reach the capture target are ranked (audit §7, errata E-005). If none
+    does, the point with the highest capture is returned with feasible=False and a warning.
+    Infeasible points get a NaN score.
     """
     weights = LEGACY_WEIGHTS if weights is None else weights
-    score = weighted_scores({k: [getattr(p, k) for p in points] for k in weights}, weights)
-    i_best = int(np.argmin(score))
+    feasible = [i for i, p in enumerate(points) if p.absorber.reached_target]
+    scores = np.full(len(points), np.nan)
+    if not feasible:
+        i_best = max(range(len(points)), key=lambda i: points[i].absorber.capture_achieved)
+        top = points[i_best]
+        warning = (
+            f"no design reaches the capture target; best capture "
+            f"{top.absorber.capture_achieved:.1%} at NaOH {top.NaOH_M:.3g} M, L/G {top.LG_vol:.4g}"
+        )
+        return OptimizationResult(
+            best=points[i_best],
+            best_score=float("nan"),
+            points=tuple(points),
+            scores=tuple(float(v) for v in scores),
+            feasible=False,
+            n_feasible=0,
+            warnings=(warning,),
+        )
+    ranked = [points[i] for i in feasible]
+    scores[feasible] = weighted_scores(
+        {k: [getattr(p, k) for p in ranked] for k in weights}, weights
+    )
+    i_best = feasible[int(np.argmin(scores[feasible]))]
     return OptimizationResult(
         best=points[i_best],
-        best_score=float(score[i_best]),
+        best_score=float(scores[i_best]),
         points=tuple(points),
-        scores=tuple(float(s) for s in score),
+        scores=tuple(float(v) for v in scores),
+        feasible=True,
+        n_feasible=len(feasible),
     )
 
 

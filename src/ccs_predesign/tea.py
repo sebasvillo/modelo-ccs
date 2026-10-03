@@ -126,7 +126,7 @@ def evaluate_design_point(
 ) -> DesignPoint:
     """Absorber + cell + TEA for one (NaOH, L/G) point (legacy cell 8).
 
-    LEGACY(audit §7): points that miss the capture target are costed like any other.
+    Points that miss the capture target are costed too; optimize.choose_best excludes them.
     """
     res = simulate_absorber(flue, solv, absorber, LG_vol)
     cell = electrochemical_regeneration(res.CO2_captured_mol_s, solv.NaOH_M, cell_spec)
