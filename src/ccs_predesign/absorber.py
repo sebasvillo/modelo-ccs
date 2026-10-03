@@ -105,36 +105,63 @@ def simulate_absorber(
 
     OH_PER_CO2 = OH_PER_CO2_CARBONATE
     capacity_mol_s = OH_mol_m3 * Ql_m3_s / OH_PER_CO2
-    kG, kL, a_eff, Dl = props0["kG"], props0["kL"], props0["a_eff"], props0["Dl"]
-    D_OH = solvent.diffusivity_NaOH_m2_s(T_K, solv.NaOH_M)
+    kG, a_eff = props0["kG"], props0["a_eff"]  # gas side and wetted area at the gas inlet T
     ntu_per_KGa_m = c_tot / G_flux  # dNTU = KGa · c_tot · dz / G''
-    K1, K2, Kw = solvent.carbonate_constants(T_K)
-    ystar_coeff = H_cc * 1000.0 * Kw**2 / (K1 * K2 * c_tot)  # y* = coeff·[CO3]_M/[OH]_M²
+    fresh_ions = solvent.naoh_ions_kmol_m3(solv.NaOH_M)
 
-    def node(y: float, y_top: float) -> tuple[float, float, float, float, float]:
+    # Adiabatic liquid energy balance over the section above z (audit §7, errata E-013):
+    # T_L = T_L,in + (−ΔH)·G·(y − y_top)/(m_L·cp). Water evaporation and the gas sensible heat
+    # are neglected, so the temperature rise is an upper bound.
+    T_L_in = gas.c_to_k(solv.T_in_C) if solv.T_in_C is not None else T_K
+    m_L_kg_s = solvent.density_kg_m3(T_L_in, solv.NaOH_M) * Ql_m3_s
+    dT_per_dy = -solvent.DH_ABS_CARBONATE_J_mol * G_mol_s / (m_L_kg_s * solvent.CP_SOLUTION_J_kgK)
+
+    def liquid(y: float, y_top: float) -> tuple[float, float, float, float, float, float]:
+        """OH-, T_L, kL, D_CO2, H_cc and the y* coefficient of the liquid in contact with gas y."""
+        OH = OH_mol_m3 - OH_PER_CO2 * G_mol_s * (y - y_top) / Ql_m3_s
+        T_L = T_L_in + dT_per_dy * (y - y_top)
+        kL_T, Dl_T = packing.liquid_film_kL(T_L, solv.NaOH_M, uL, pk)
+        H_cc_T = solvent.henry_cc_CO2(T_L, fresh_ions)
+        K1, K2, Kw = solvent.carbonate_constants(T_L)
+        ystar_coeff = H_cc_T * 1000.0 * Kw**2 / (K1 * K2 * c_tot)  # y* = coeff·[CO3]/[OH]²
+        return OH, T_L, kL_T, Dl_T, H_cc_T, ystar_coeff
+
+    def node(y: float, y_top: float) -> tuple[float, float, float, float, float, float]:
         """Local liquid state and rates at a height where the gas mole fraction is y.
 
         Counter-current balance over the section above: the liquid has absorbed
         G·(y − y_top) since entering fresh at the top (audit §5, errata E-007).
+        Returns OH-, T_L, Ha, E, KGa and y*.
         """
-        OH = OH_mol_m3 - OH_PER_CO2 * G_mol_s * (y - y_top) / Ql_m3_s
+        OH, T_L, kL_T, Dl_T, H_cc_T, ystar_coeff = liquid(y, y_top)
         if OH <= 0.0:  # no hydroxide left: no reaction and no driving force
-            KG = 1.0 / (1.0 / kG + H_cc / kL)
-            return OH, 0.0, 1.0, KG * a_eff, y
-        Ha_loc = kinetics.hatta_number(k2_local(OH) * OH, Dl, kL)
-        CO2_i = y * c_tot / H_cc  # conservative: gas-film resistance neglected for E_inf
-        E_inf = kinetics.enhancement_infinite(D_OH, OH, Dl, CO2_i, nu=OH_PER_CO2)
+            KG = 1.0 / (1.0 / kG + H_cc_T / kL_T)
+            return OH, T_L, 0.0, 1.0, KG * a_eff, y
+        I_kmol_m3 = 0.5 * (3.0 * solv.NaOH_M - OH / 1000.0)  # Na+, OH-, CO3--
+        k2 = kinetics.k2_pohorecki_moniuk_m3_mol_s(T_L, I_kmol_m3)
+        Ha_loc = kinetics.hatta_number(k2 * OH, Dl_T, kL_T)
+        CO2_i = y * c_tot / H_cc_T  # conservative: gas-film resistance neglected for E_inf
+        D_OH = solvent.diffusivity_NaOH_m2_s(T_L, solv.NaOH_M)
+        E_inf = kinetics.enhancement_infinite(D_OH, OH, Dl_T, CO2_i, nu=OH_PER_CO2)
         E_loc = kinetics.enhancement_factor_decoursey(Ha_loc, E_inf)
-        KG = 1.0 / (1.0 / max(kG, 1e-12) + H_cc / max(kL * E_loc, 1e-12))
+        KG = 1.0 / (1.0 / max(kG, 1e-12) + H_cc_T / max(kL_T * E_loc, 1e-12))
         CO3_M = (OH_mol_m3 - OH) / OH_PER_CO2 / 1000.0
         y_star = min(ystar_coeff * CO3_M / (OH / 1000.0) ** 2, y)
-        return OH, Ha_loc, E_loc, KG * a_eff, y_star
+        return OH, T_L, Ha_loc, E_loc, KG * a_eff, y_star
 
     def pinch_gap(y: float, y_top: float) -> float:
         """y*(liquid in contact with gas y) − y; it crosses zero at a rich-end pinch."""
-        OH = OH_mol_m3 - OH_PER_CO2 * G_mol_s * (y - y_top) / Ql_m3_s
+        OH, _, _, _, _, ystar_coeff = liquid(y, y_top)
         CO3_M = (OH_mol_m3 - OH) / OH_PER_CO2 / 1000.0
         return ystar_coeff * CO3_M / (OH / 1000.0) ** 2 - y
+
+    PROFILE_KEYS = ("z", "y", "OH", "T", "Ha", "E", "KGa", "ys", "r")
+
+    def record(prof: dict[str, list[float]], z: float, y: float, st: tuple) -> None:
+        OH, T_L, Ha_loc, E_loc, KGa_loc, y_star = st
+        values = (z, y, OH, T_L, Ha_loc, E_loc, KGa_loc, y_star, KGa_loc * (y - y_star))
+        for k, v in zip(PROFILE_KEYS, values, strict=True):
+            prof[k].append(v)
 
     def march(y_top: float, z_end: float, y_stop: float | None = None, keep: bool = False):
         """Integrate upward from the gas inlet (z = 0) with explicit exponential steps.
@@ -143,18 +170,12 @@ def simulate_absorber(
         otherwise the march ends exactly at z_end (rating mode).
         """
         y, z, ntu, reached = y_in, 0.0, 0.0, False
-        prof: dict[str, list[float]] = {
-            k: [] for k in ("z", "y", "OH", "Ha", "E", "KGa", "ys", "r")
-        }
+        prof: dict[str, list[float]] = {k: [] for k in PROFILE_KEYS}
         while z < z_end - 1e-12:
-            OH, Ha_loc, E_loc, KGa_loc, y_star = node(y, y_top)
+            st = node(y, y_top)
             if keep:
-                for k, v in zip(
-                    prof,
-                    (z, y, OH, Ha_loc, E_loc, KGa_loc, y_star, KGa_loc * (y - y_star)),
-                    strict=True,
-                ):
-                    prof[k].append(v)
+                record(prof, z, y, st)
+            KGa_loc, y_star = st[4], st[5]
             k_m = KGa_loc * ntu_per_KGa_m  # transfer units per metre
             h = min(spec.dz_m, z_end - z)
             y_new = y_star + (y - y_star) * math.exp(-k_m * h)
@@ -165,13 +186,7 @@ def simulate_absorber(
             if reached:
                 break
         if keep:
-            OH, Ha_loc, E_loc, KGa_loc, y_star = node(y, y_top)
-            for k, v in zip(
-                prof,
-                (z, y, OH, Ha_loc, E_loc, KGa_loc, y_star, KGa_loc * (y - y_star)),
-                strict=True,
-            ):
-                prof[k].append(v)
+            record(prof, z, y, node(y, y_top))
         return y, z, ntu, reached, prof
 
     def march_down(y_top: float, height: float, keep: bool = False):
@@ -181,22 +196,16 @@ def simulate_absorber(
         which an upward march would start inside of.
         """
         y, z, ntu = y_top, height, 0.0
-        prof: dict[str, list[float]] = {
-            k: [] for k in ("z", "y", "OH", "Ha", "E", "KGa", "ys", "r")
-        }
+        prof: dict[str, list[float]] = {k: [] for k in PROFILE_KEYS}
+        y_dry = y_top + OH_mol_m3 * Ql_m3_s / (OH_PER_CO2 * G_mol_s) * (1.0 - 1e-12)
         while z > 1e-12:
-            OH, Ha_loc, E_loc, KGa_loc, y_star = node(y, y_top)
+            st = node(y, y_top)
             if keep:
-                for k, v in zip(
-                    prof,
-                    (z, y, OH, Ha_loc, E_loc, KGa_loc, y_star, KGa_loc * (y - y_star)),
-                    strict=True,
-                ):
-                    prof[k].append(v)
+                record(prof, z, y, st)
+            KGa_loc, y_star = st[4], st[5]
             k_m = KGa_loc * ntu_per_KGa_m
             h = min(spec.dz_m, z)
             y_new = y_star + (y - y_star) * math.exp(k_m * h)
-            y_dry = y_top + OH_mol_m3 * Ql_m3_s / (OH_PER_CO2 * G_mol_s) * (1.0 - 1e-12)
             y_hi = min(y_new, y_dry)  # gas level at which the liquid would hold no OH- left
             if pinch_gap(y, y_top) >= 0.0:  # already sitting on the pinch: no driving force
                 y_new = y
@@ -206,19 +215,13 @@ def simulate_absorber(
             y = y_new
             z, ntu = z - h, ntu + k_m * h
         if keep:
-            OH, Ha_loc, E_loc, KGa_loc, y_star = node(y, y_top)
-            for k, v in zip(
-                prof,
-                (0.0, y, OH, Ha_loc, E_loc, KGa_loc, y_star, KGa_loc * (y - y_star)),
-                strict=True,
-            ):
-                prof[k].append(v)
+            record(prof, 0.0, y, node(y, y_top))
             prof = {k: v[::-1] for k, v in prof.items()}
         return y, ntu, prof
 
     OH_bottom_design = OH_mol_m3 - OH_PER_CO2 * G_mol_s * (y_in - y_out_target) / Ql_m3_s
     reached = False
-    if OH_bottom_design > 0.0 and node(y_in, y_out_target)[4] < y_in:
+    if OH_bottom_design > 0.0 and node(y_in, y_out_target)[5] < y_in:
         y_end, z_end, ntu_total, reached, prof = march(
             y_out_target, spec.max_height_m, y_stop=y_out_target, keep=True
         )
@@ -258,10 +261,16 @@ def simulate_absorber(
             f"(capture {(y_in - y_out) / y_in:.1%})"
         )
     T_lo, T_hi = kinetics.PM_VALID_T_K
-    if not T_lo <= T_K <= T_hi:
+    T_min, T_max = min(prof["T"]), max(prof["T"])
+    if T_min < T_lo or T_max > T_hi:
         warnings.append(
-            f"k2 (Pohorecki & Moniuk 1988) extrapolated: T = {T_K:.1f} K "
+            f"k2 (Pohorecki & Moniuk 1988) extrapolated: liquid {T_min:.1f}–{T_max:.1f} K "
             f"outside {T_lo:g}–{T_hi:g} K"
+        )
+    if T_max > 363.15:
+        warnings.append(
+            f"liquid reaches {T_max - 273.15:.0f} °C: above the validity of the solubility and "
+            "equilibrium correlations (90 °C); raise L/G"
         )
     if capacity_mol_s < G_mol_s * (y_in - y_out_target):
         warnings.append(
@@ -344,6 +353,7 @@ def simulate_absorber(
         y_star=tuple(prof["ys"]),
         rate_indicator=tuple(prof["r"]),
         OH_mol_m3=tuple(OH_vals),
+        T_liquid_K=tuple(prof["T"]),
         Ha_profile=tuple(prof["Ha"]),
         E_profile=tuple(prof["E"]),
         KGa_profile_1_s=tuple(prof["KGa"]),

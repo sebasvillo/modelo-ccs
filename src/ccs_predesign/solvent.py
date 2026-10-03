@@ -116,3 +116,11 @@ def diffusivity_NaOH_m2_s(T_K: float, C_NaOH_M: float) -> float:
         * viscosity_Pa_s(298.15, 0.0)
         / viscosity_Pa_s(T_K, C_NaOH_M)
     )
+
+
+# Heat of absorption, CO2(g) + 2 OH-(aq) -> CO3--(aq) + H2O(l), from standard enthalpies of
+# formation (Wagman et al. 1982, NBS tables): −677.1 − 285.8 − (−393.5 − 2·230.0) kJ/mol.
+DH_ABS_CARBONATE_J_mol = -109.4e3
+
+# Specific heat of 1–3 M NaOH solution. Own closure: typical value, ±5 % over that range.
+CP_SOLUTION_J_kgK = 3900.0
