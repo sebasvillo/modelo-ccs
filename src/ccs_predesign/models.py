@@ -128,8 +128,8 @@ class AbsorberResult(_Frozen):
     KGa_1_s: float = Field(description="at the liquid inlet; see KGa_profile_1_s")
     a_eff_m2_m3: float
     wetting_fraction: float
-    Ha: float
-    E: float
+    Ha: float = Field(description="at the liquid inlet (top); see Ha_profile")
+    E: float = Field(description="at the liquid inlet (top), DeCoursey with E_inf; see E_profile")
     H_cc_CO2: float = Field(description="dimensionless Henry constant c_G/c_L (salting-out)")
     k1_pseudo_1_s: float
     D_g_m2_s: float

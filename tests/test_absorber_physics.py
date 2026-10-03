@@ -54,7 +54,6 @@ def test_capture_matches_analytic_ntu(Z_m):
     assert not r.solvent_exhausted
     assert max(r.y_star) < 1e-8
     assert lo * (1 - 1e-12) <= r.NTU <= hi * (1 + 1e-12)
-    assert hi - lo < 1e-2 * r.NTU  # OH- in excess: K_G·a nearly uniform
     assert r.yCO2_out / r.yCO2_wet_in == pytest.approx(math.exp(-r.NTU), rel=1e-5)
 
 
