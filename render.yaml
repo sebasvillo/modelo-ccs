@@ -1,0 +1,13 @@
+# Render Blueprint: free web service, rebuilt on every push to main.
+services:
+  - type: web
+    name: modelo-ccs-api
+    runtime: docker
+    plan: free
+    region: virginia
+    branch: main
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: CCS_CORS_ORIGINS
+        value: https://sebasvillo.com,https://www.sebasvillo.com,http://localhost:4321
