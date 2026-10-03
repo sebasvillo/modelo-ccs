@@ -5,25 +5,12 @@ This is what the API returns so the website can answer "where does this number c
 k2 and H_cp at the liquid inlet) reuse the same package functions as the model.
 """
 
-import json
 from importlib.metadata import version
-from pathlib import Path
 
-from . import kinetics, solvent
+from . import ERRATA_ID, kinetics, solvent
 from .constants import FARADAY_C_mol, G_m_s2, R_J_molK
 from .models import CaseInput, CaseResponse, CaseResult, ExplainedValue, Profiles
 from .tea import crf
-
-SNAPSHOT = (
-    Path(__file__).resolve().parents[2] / "tests" / "golden" / "snapshots" / "model_outputs.json"
-)
-
-
-def _errata_id() -> str:
-    try:
-        return json.loads(SNAPSHOT.read_text(encoding="utf-8"))["errata_id"]
-    except (OSError, KeyError, ValueError):
-        return "unknown"
 
 
 def explain_case(inp: CaseInput, result: CaseResult) -> tuple[ExplainedValue, ...]:
@@ -218,7 +205,7 @@ def case_response(inp: CaseInput, result: CaseResult) -> CaseResponse:
     )
     return CaseResponse(
         model_version=version("ccs-predesign"),
-        errata_id=_errata_id(),
+        errata_id=ERRATA_ID,
         feasible=result.absorber.feasible,
         warnings=warnings,
         outputs=explain_case(inp, result),

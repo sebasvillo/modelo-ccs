@@ -31,6 +31,13 @@ def test_snapshot_is_tied_to_latest_errata():
     )
 
 
+def test_package_errata_id_is_current():
+    """ccs_predesign.ERRATA_ID (returned by the API) must name the latest errata entry."""
+    from ccs_predesign import ERRATA_ID
+
+    assert ERRATA_ID == latest_errata_id()
+
+
 def test_model_matches_snapshot():
     data = json.loads(SNAPSHOT.read_text(encoding="utf-8"))
     _assert_close(data["outputs"], compute_snapshot())
