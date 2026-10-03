@@ -11,10 +11,10 @@ import sys
 from pathlib import Path
 
 from ccs_predesign.absorber import simulate_absorber
-from ccs_predesign.models import AbsorberSpec, CaseInput, FlueGas, Solvent, TEASpec
+from ccs_predesign.models import AbsorberSpec, CaseInput, CellSpec, FlueGas, Solvent, TEASpec
 from ccs_predesign.optimize import optimize_two_stage
 from ccs_predesign.pipeline import run_case
-from ccs_predesign.tea import design_costs
+from ccs_predesign.tea import design_costs, evaluate_design_point
 
 ROOT = Path(__file__).resolve().parents[2]
 SNAPSHOT = Path(__file__).with_name("snapshots") / "model_outputs.json"
@@ -89,7 +89,22 @@ def compute_snapshot() -> dict:
             D_col_fixed_m=0.0154,
         )
         bench.append({"H_bed_m": H, "NaOH_M": C} | _absorber(r))
+    default_case = CaseInput()
+    j_opt = evaluate_design_point(
+        default_case.gas,
+        Solvent(NaOH_M=2.5),
+        default_case.absorber,
+        CellSpec(optimize_j=True),
+        TEASpec(cell_capex_usd_m2=4200.0),
+        0.0093,
+    )
     return {
+        "current_density_optimum_capex4200": {
+            "j_mA_cm2": j_opt.cell.j_A_m2 / 10.0,
+            "V_cell_V": j_opt.cell.V_cell_V,
+            "A_cell_m2": j_opt.cell.A_cell_m2,
+            "LCOC_usd_t": j_opt.LCOC_usd_t,
+        },
         "base_case": _absorber(best)
         | {
             "feasible": base.absorber.feasible,

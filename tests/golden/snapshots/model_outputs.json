@@ -1,6 +1,12 @@
 {
   "errata_id": "E-014",
   "outputs": {
+    "current_density_optimum_capex4200": {
+      "j_mA_cm2": 135.54252472921507,
+      "V_cell_V": 1.2127387606306845,
+      "A_cell_m2": 68220.06890480277,
+      "LCOC_usd_t": 290.3373054735963
+    },
     "base_case": {
       "LG_vol": 0.01111111111111111,
       "height_m": 18.001886186852186,
