@@ -51,3 +51,8 @@ Three lines per working session: what was done, what was found, what comes next.
 - `equations.py`: 48 equations with LaTeX, ES/EN meaning, 89 symbols with units, provenance, 20 references, validity ranges and errata links; exported to `equations.json`.
 - Every physics function cites its equation ids in the docstring; tests fail on a missing citation, unknown symbol/reference or a stale export.
 - Next: API (FastAPI) returning each output with its equation id and intermediate values; still waiting for packing/hydraulics/cell-cost sources.
+
+## 2026-10-03 · Session 11 · API with explained outputs (CLAUDE.md rules 1 and 9)
+- FastAPI app (`api/main.py`): `/health`, `/v1/equations`, `/v1/case`; inputs validated by the pydantic models with size limits; not deployed.
+- `report.py` returns 21 headline outputs, each with its equation id and substituted values; a test re-evaluates every equation from those values (it caught two untruthful explanations, fixed with `absorber.height` and `absorber.capture`).
+- Next: deploy decision (free container + api.sebasvillo.com) and the website subpage; physics still waiting for packing/hydraulics/cell-cost sources.
