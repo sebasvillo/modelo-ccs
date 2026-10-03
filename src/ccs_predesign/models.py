@@ -116,6 +116,9 @@ class AbsorberResult(_Frozen):
     n_dry_mol_s: float
     n_wet_mol_s: float
     G_mol_s: float = Field(description="total gas molar flow (not a flux)")
+    G_flux_mol_m2_s: float = Field(description="gas molar flux G/A_col")
+    c_tot_mol_m3: float = Field(description="gas molar concentration P/(R·T)")
+    NTU: float = Field(description="gas-phase transfer units over the packed height")
     L_mol_s: float = Field(description="liquid molar flow, water-proxy molar mass")
     rho_g_kg_m3: float
     rho_l_kg_m3: float

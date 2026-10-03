@@ -10,6 +10,19 @@ from .models import AbsorberDesign, AbsorberResult, AbsorberSpec, FlueGas, Solve
 logger = logging.getLogger(__name__)
 
 
+def ntu_increment(
+    KGa_1_s: float, c_tot_mol_m3: float, G_flux_mol_m2_s: float, dz_m: float
+) -> float:
+    """Gas-phase transfer units in a slice: dNTU = K_G·a·c_tot·dz / G''  [dimensionless].
+
+    From the gas balance G''·dy/dz = −K_G·a·c_tot·(y − y*), with K_G in m/s, a in 1/m,
+    c_tot = P/(R·T) in mol/m3 and G'' the gas molar flux in mol/(m2·s). Constant G'' is assumed
+    (dilute-gas approximation). Provenance: theory (film model, e.g. Seader & Henley,
+    Separation Process Principles, ch. 6). Fixes audit §1 (errata E-001).
+    """
+    return KGa_1_s * c_tot_mol_m3 * dz_m / G_flux_mol_m2_s
+
+
 def simulate_absorber(
     flue: FlueGas,
     solv: Solvent,
@@ -22,7 +35,6 @@ def simulate_absorber(
     The diameter comes from spec.flood_fraction of the flooding velocity, unless
     D_col_fixed_m is given (legacy cell 4 variant, used for the bench column).
 
-    LEGACY(audit §1): the step exponent KGa/G·dz is not dimensionless.
     LEGACY(audit §4): no stoichiometric OH- limit; Ha and E fixed at fresh-solvent values.
     LEGACY(audit §5): lean solvent (x = 0) imposed at the gas inlet, i.e. co-current.
     """
@@ -73,8 +85,10 @@ def simulate_absorber(
     L_mol_s = rho_l * Ql_m3_s / MW_kg_mol["water"]  # LEGACY: water-proxy molar mass
     G_mol_s = n_wet
 
-    step = (KGa / max(G_mol_s, 1e-12)) * spec.dz_m  # LEGACY(audit §1)
-    logger.debug("KGa=%.3f 1/s | G=%.3e mol/s | (KGa/G)*dz = %.2f", KGa, G_mol_s, step)
+    c_tot = P_Pa / (R_J_molK * T_K)
+    G_flux = G_mol_s / A_col
+    step = ntu_increment(KGa, c_tot, G_flux, spec.dz_m)
+    logger.debug("KGa=%.3f 1/s | G''=%.3e mol/m2/s | dNTU = %.4g", KGa, G_flux, step)
 
     z_vals, y_vals, x_vals = [0.0], [y_in], [0.0]
     ystar_vals, rate_vals = [spec.H_eq * 0.0], [0.0]
@@ -126,6 +140,9 @@ def simulate_absorber(
         n_dry_mol_s=n_dry,
         n_wet_mol_s=n_wet,
         G_mol_s=G_mol_s,
+        G_flux_mol_m2_s=G_flux,
+        c_tot_mol_m3=c_tot,
+        NTU=step * (len(z_vals) - 1),
         L_mol_s=L_mol_s,
         rho_g_kg_m3=rho_g,
         rho_l_kg_m3=rho_l,
