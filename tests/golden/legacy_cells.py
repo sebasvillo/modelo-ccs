@@ -24,31 +24,6 @@ def cell_source(index: int) -> str:
     return "".join(cells[index]["source"])
 
 
-def load_cell1() -> dict:
-    """Execute cell 1 definitions (everything except the final `run_case()` call)."""
-    src = cell_source(1)
-    run_line = "best_design, all_designs = run_case()"
-    assert src.rstrip().endswith(run_line)
-    ns: dict = {"__name__": "legacy_cell1"}
-    exec(compile(src.rstrip()[: -len(run_line)], "legacy_cell1", "exec"), ns)
-    return ns
-
-
-def run_legacy_case(ns: dict, **overrides) -> tuple[dict, list]:
-    """Call the legacy run_case() with some module-level inputs overridden."""
-    import matplotlib.pyplot as plt
-
-    ns.update(overrides)
-    with (
-        contextlib.redirect_stdout(io.StringIO()),
-        warnings.catch_warnings(),
-    ):
-        warnings.simplefilter("ignore")
-        best, candidates = ns["run_case"]()
-    plt.close("all")
-    return best, candidates
-
-
 def load_notebook_state(cells=(1, 2, 4, 6, 8)) -> dict:
     """Execute whole cells in notebook order in one namespace, like the saved kernel run.
 
@@ -67,11 +42,6 @@ def load_notebook_state(cells=(1, 2, 4, 6, 8)) -> dict:
                     raise
         plt.close("all")
     return ns
-
-
-def exec_cell(ns: dict, index: int) -> None:
-    with contextlib.redirect_stdout(io.StringIO()):
-        exec(compile(cell_source(index), f"legacy_cell{index}", "exec"), ns)
 
 
 ABSORBER_FIELDS = {
