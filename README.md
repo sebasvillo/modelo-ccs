@@ -35,6 +35,13 @@ uv run pytest -q -m "not slow"
 uv run ruff check
 ```
 
+## Equations
+
+Every equation the model uses, with its meaning (ES/EN), symbols and units, provenance
+(`theory`, `literature` or `own_closure`), reference and validity range, is listed in
+[`src/ccs_predesign/equations.py`](src/ccs_predesign/equations.py) and exported to
+[`equations.json`](equations.json).
+
 ## License
 
 Code: [MIT](LICENSE). Documentation (`docs/`, README): [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
