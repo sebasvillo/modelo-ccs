@@ -12,6 +12,7 @@ dependencies = [
     "pandas",
     "matplotlib",
     "pydantic>=2.13.5",
+    "scipy>=1.18.1",
 ]
 
 [dependency-groups]

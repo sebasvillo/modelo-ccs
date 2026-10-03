@@ -22,8 +22,10 @@ def test_capture_never_exceeds_stoichiometric_capacity(C, LG):
 
 @pytest.mark.parametrize(("C", "LG"), GRID)
 def test_hydroxide_balance_closes(C, LG):
+    """Counter-current: fresh solvent at the top (z = H), rich solvent at the bottom (z = 0)."""
     r = simulate_absorber(FlueGas(), Solvent(NaOH_M=C), AbsorberSpec(), LG)
-    consumed = (r.OH_mol_m3[0] - r.OH_mol_m3[-1]) * r.Ql_m3_s
+    assert r.OH_mol_m3[-1] == pytest.approx(C * 1000.0, rel=1e-9)  # boundary condition at top
+    consumed = (r.OH_mol_m3[-1] - r.OH_mol_m3[0]) * r.Ql_m3_s
     assert consumed == pytest.approx(2.0 * r.CO2_captured_mol_s, rel=1e-9)
 
 
@@ -35,17 +37,18 @@ def test_legacy_base_case_runs_out_of_hydroxide():
     """
     r = simulate_absorber(FlueGas(), Solvent(NaOH_M=1.5), AbsorberSpec(), 0.005)
     assert not r.reached_target
-    assert r.OH_mol_m3[-1] < 0.01 * r.OH_mol_m3[0]
+    assert r.OH_mol_m3[0] < 0.01 * r.OH_mol_m3[-1]
     assert r.CO2_captured_mol_s <= r.OH_capacity_CO2_mol_s
     assert any("below the capture target" in w for w in r.warnings)
 
 
 def test_local_chemistry_follows_hydroxide_depletion():
+    """OH-, Ha and KGa rise from the rich bottom to the fresh top."""
     r = simulate_absorber(FlueGas(), Solvent(NaOH_M=1.5), AbsorberSpec(), 0.01)
-    assert all(a >= b for a, b in itertools.pairwise(r.OH_mol_m3))
-    assert all(a >= b for a, b in itertools.pairwise(r.Ha_profile))
-    assert r.KGa_profile_1_s[-1] < r.KGa_profile_1_s[0]
-    assert r.KGa_1_s == r.KGa_profile_1_s[0]
+    assert all(a <= b for a, b in itertools.pairwise(r.OH_mol_m3))
+    assert all(a <= b for a, b in itertools.pairwise(r.Ha_profile))
+    assert r.KGa_profile_1_s[0] < r.KGa_profile_1_s[-1]
+    assert r.KGa_1_s == pytest.approx(r.KGa_profile_1_s[-1], rel=1e-9)
 
 
 def test_unreached_target_is_warned():
