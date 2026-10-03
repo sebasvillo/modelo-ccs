@@ -1,4 +1,9 @@
-"""Packing database plus mass-transfer and hydraulic correlations (legacy forms)."""
+"""Packing database plus mass-transfer and hydraulic correlations.
+
+Random packings use Onda, Takeuchi & Okumoto (1968) for kG, kL and the wetted area
+(errata E-014). Structured packings and the hydraulics (flooding, pressure drop) still use the
+legacy forms, flagged in the absorber warnings.
+"""
 
 import math
 
@@ -8,6 +13,11 @@ from . import gas, solvent
 from .constants import G_m_s2
 from .models import Packing
 
+# Critical surface tension of packing materials (Onda et al. 1968): steel 0.075, ceramic 0.061,
+# carbon 0.056, PVC 0.040, polyethylene 0.033 N/m. The legacy database does not state the
+# material; metal (steel) is assumed for the random packings.
+SIGMA_C_STEEL_N_m = 0.075
+
 PACKINGS: dict[str, Packing] = {
     "raschig_metal_25mm": Packing(
         a_spec_m2_m3=200.0,
@@ -15,6 +25,7 @@ PACKINGS: dict[str, Packing] = {
         dp_eq_m=0.025,
         wetting_ref_uL_m_s=0.003,
         flood_coeff=0.42,
+        sigma_c_N_m=SIGMA_C_STEEL_N_m,
     ),
     "pall_ring_25mm": Packing(
         a_spec_m2_m3=210.0,
@@ -22,6 +33,7 @@ PACKINGS: dict[str, Packing] = {
         dp_eq_m=0.025,
         wetting_ref_uL_m_s=0.003,
         flood_coeff=0.45,
+        sigma_c_N_m=SIGMA_C_STEEL_N_m,
     ),
     "structured_250Y": Packing(
         a_spec_m2_m3=250.0,
@@ -29,6 +41,7 @@ PACKINGS: dict[str, Packing] = {
         dp_eq_m=0.008,
         wetting_ref_uL_m_s=0.0015,
         flood_coeff=0.60,
+        kind="structured",
     ),
     "random_high_capacity": Packing(
         a_spec_m2_m3=160.0,
@@ -36,6 +49,7 @@ PACKINGS: dict[str, Packing] = {
         dp_eq_m=0.035,
         wetting_ref_uL_m_s=0.004,
         flood_coeff=0.40,
+        sigma_c_N_m=SIGMA_C_STEEL_N_m,
     ),
 }
 
@@ -179,3 +193,77 @@ def column_diameter_m(
     A = Qg_m3_s / v_oper
     D = math.sqrt(4.0 * A / math.pi)
     return D, v_flood, v_oper
+
+
+def onda_wetted_area_m2_m3(
+    L_kg_m2s: float, rho_l: float, mu_l: float, sigma_l: float, packing: Packing
+) -> float:
+    """Wetted area a_w = a·{1 − exp[−1.45 (σc/σ)^0.75 Re^0.1 Fr^−0.05 We^0.2]} (Onda 1968).
+
+    Re = L/(a·μ), Fr = L²·a/(ρ²·g), We = L²/(ρ·σ·a), L the liquid mass flux [kg/(m2·s)].
+    Provenance: literature (Onda, Takeuchi & Okumoto 1968, J. Chem. Eng. Japan 1, 56).
+    """
+    a = packing.a_spec_m2_m3
+    Re = L_kg_m2s / (a * mu_l)
+    Fr = L_kg_m2s**2 * a / (rho_l**2 * G_m_s2)
+    We = L_kg_m2s**2 / (rho_l * sigma_l * a)
+    x = 1.45 * (packing.sigma_c_N_m / sigma_l) ** 0.75 * Re**0.1 * Fr**-0.05 * We**0.2
+    return a * (1.0 - math.exp(-x))
+
+
+def onda_kL_m_s(
+    L_kg_m2s: float, a_w: float, rho_l: float, mu_l: float, D_l: float, packing: Packing
+) -> float:
+    """kL·(ρ/(μ·g))^(1/3) = 0.0051 (L/(a_w·μ))^(2/3) Sc^(−1/2) (a·dp)^0.4 (Onda 1968)."""
+    Sc = mu_l / (rho_l * D_l)
+    group = 0.0051 * (L_kg_m2s / (a_w * mu_l)) ** (2.0 / 3.0) * Sc**-0.5
+    return (
+        group * (packing.a_spec_m2_m3 * packing.dp_eq_m) ** 0.4 * (mu_l * G_m_s2 / rho_l) ** (1 / 3)
+    )
+
+
+def onda_kG_m_s(G_kg_m2s: float, rho_g: float, mu_g: float, D_g: float, packing: Packing) -> float:
+    """kG/(a·D_G) = C (G/(a·μ))^0.7 Sc^(1/3) (a·dp)^−2, C = 5.23 (2.00 below 15 mm) (Onda 1968).
+
+    kG in concentration units [m/s] (kG,p·R·T of the original).
+    """
+    a = packing.a_spec_m2_m3
+    C = 5.23 if packing.dp_eq_m >= 0.015 else 2.00
+    Sc = mu_g / (rho_g * D_g)
+    return (
+        C * a * D_g * (G_kg_m2s / (a * mu_g)) ** 0.7 * Sc ** (1 / 3) * (a * packing.dp_eq_m) ** -2.0
+    )
+
+
+def gas_side_kG_m_s(
+    T_K: float, P_Pa: float, comp_gas: dict[str, float], uG_m_s: float, packing: Packing
+) -> float:
+    """Gas-film coefficient: Onda for random packings, legacy particle form for structured."""
+    rho_g = gas.density_ideal_kg_m3(T_K, P_Pa, comp_gas)
+    mu_g = gas.viscosity_sutherland_air_Pa_s(T_K)
+    Dg = gas.diffusivity_CO2_in_air_m2_s(T_K, P_Pa)
+    if packing.kind == "random" and packing.sigma_c_N_m is not None:
+        return onda_kG_m_s(rho_g * uG_m_s, rho_g, mu_g, Dg, packing)
+    d_h = 4.0 * packing.void_fraction / max(packing.a_spec_m2_m3, 1e-12)
+    ShG = sherwood_gas(reynolds(rho_g, uG_m_s, d_h, mu_g), schmidt(mu_g, rho_g, Dg))
+    return ShG * Dg / d_h
+
+
+def liquid_side(
+    T_K: float, C_NaOH_M: float, uL_m_s: float, packing: Packing
+) -> tuple[float, float, float]:
+    """kL [m/s], CO2 diffusivity D_l [m2/s] and interfacial area a_e [m2/m3] at the liquid T.
+
+    Random packings: Onda (1968) wetted area and kL. Structured: legacy closures (flagged).
+    """
+    if packing.kind == "random" and packing.sigma_c_N_m is not None:
+        rho_l = solvent.density_kg_m3(T_K, C_NaOH_M)
+        mu_l = solvent.viscosity_Pa_s(T_K, C_NaOH_M)
+        D_l = solvent.diffusivity_CO2_m2_s(T_K, C_NaOH_M)
+        L = rho_l * max(uL_m_s, 1e-12)
+        a_w = onda_wetted_area_m2_m3(
+            L, rho_l, mu_l, solvent.surface_tension_N_m(T_K, C_NaOH_M), packing
+        )
+        return onda_kL_m_s(L, a_w, rho_l, mu_l, D_l, packing), D_l, a_w
+    kL, D_l = liquid_film_kL(T_K, C_NaOH_M, uL_m_s, packing)
+    return kL, D_l, packing.a_spec_m2_m3 * wetting_fraction(max(uL_m_s, 1e-12), packing)

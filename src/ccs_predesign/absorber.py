@@ -14,6 +14,9 @@ logger = logging.getLogger(__name__)
 # Carbonate route CO2 + 2 OH- -> CO3-- + H2O, the only absorption route modelled.
 OH_PER_CO2_CARBONATE = 2.0
 
+# Typical upper F-factor (uG·√ρG) of random packings; Kister (1992), Distillation Design.
+RANDOM_PACKING_F_MAX = 3.0
+
 
 def ntu_increment(
     KGa_1_s: float, c_tot_mol_m3: float, G_flux_mol_m2_s: float, dz_m: float
@@ -105,7 +108,7 @@ def simulate_absorber(
 
     OH_PER_CO2 = OH_PER_CO2_CARBONATE
     capacity_mol_s = OH_mol_m3 * Ql_m3_s / OH_PER_CO2
-    kG, a_eff = props0["kG"], props0["a_eff"]  # gas side and wetted area at the gas inlet T
+    kG = packing.gas_side_kG_m_s(T_K, P_Pa, comp_wet, uG, pk)  # gas side at the gas inlet T
     ntu_per_KGa_m = c_tot / G_flux  # dNTU = KGa · c_tot · dz / G''
     fresh_ions = solvent.naoh_ions_kmol_m3(solv.NaOH_M)
 
@@ -116,15 +119,15 @@ def simulate_absorber(
     m_L_kg_s = solvent.density_kg_m3(T_L_in, solv.NaOH_M) * Ql_m3_s
     dT_per_dy = -solvent.DH_ABS_CARBONATE_J_mol * G_mol_s / (m_L_kg_s * solvent.CP_SOLUTION_J_kgK)
 
-    def liquid(y: float, y_top: float) -> tuple[float, float, float, float, float, float]:
-        """OH-, T_L, kL, D_CO2, H_cc and the y* coefficient of the liquid in contact with gas y."""
+    def liquid(y: float, y_top: float) -> tuple[float, ...]:
+        """OH-, T_L, kL, D_CO2, H_cc, y* coefficient and a_e of the liquid in contact with gas y."""
         OH = OH_mol_m3 - OH_PER_CO2 * G_mol_s * (y - y_top) / Ql_m3_s
         T_L = T_L_in + dT_per_dy * (y - y_top)
-        kL_T, Dl_T = packing.liquid_film_kL(T_L, solv.NaOH_M, uL, pk)
+        kL_T, Dl_T, a_e = packing.liquid_side(T_L, solv.NaOH_M, uL, pk)
         H_cc_T = solvent.henry_cc_CO2(T_L, fresh_ions)
         K1, K2, Kw = solvent.carbonate_constants(T_L)
         ystar_coeff = H_cc_T * 1000.0 * Kw**2 / (K1 * K2 * c_tot)  # y* = coeff·[CO3]/[OH]²
-        return OH, T_L, kL_T, Dl_T, H_cc_T, ystar_coeff
+        return OH, T_L, kL_T, Dl_T, H_cc_T, ystar_coeff, a_e
 
     def node(y: float, y_top: float) -> tuple[float, float, float, float, float, float]:
         """Local liquid state and rates at a height where the gas mole fraction is y.
@@ -133,10 +136,10 @@ def simulate_absorber(
         G·(y − y_top) since entering fresh at the top (audit §5, errata E-007).
         Returns OH-, T_L, Ha, E, KGa and y*.
         """
-        OH, T_L, kL_T, Dl_T, H_cc_T, ystar_coeff = liquid(y, y_top)
+        OH, T_L, kL_T, Dl_T, H_cc_T, ystar_coeff, a_e = liquid(y, y_top)
         if OH <= 0.0:  # no hydroxide left: no reaction and no driving force
             KG = 1.0 / (1.0 / kG + H_cc_T / kL_T)
-            return OH, T_L, 0.0, 1.0, KG * a_eff, y
+            return OH, T_L, 0.0, 1.0, KG * a_e, y
         I_kmol_m3 = 0.5 * (3.0 * solv.NaOH_M - OH / 1000.0)  # Na+, OH-, CO3--
         k2 = kinetics.k2_pohorecki_moniuk_m3_mol_s(T_L, I_kmol_m3)
         Ha_loc = kinetics.hatta_number(k2 * OH, Dl_T, kL_T)
@@ -147,11 +150,11 @@ def simulate_absorber(
         KG = 1.0 / (1.0 / max(kG, 1e-12) + H_cc_T / max(kL_T * E_loc, 1e-12))
         CO3_M = (OH_mol_m3 - OH) / OH_PER_CO2 / 1000.0
         y_star = min(ystar_coeff * CO3_M / (OH / 1000.0) ** 2, y)
-        return OH, T_L, Ha_loc, E_loc, KG * a_eff, y_star
+        return OH, T_L, Ha_loc, E_loc, KG * a_e, y_star
 
     def pinch_gap(y: float, y_top: float) -> float:
         """y*(liquid in contact with gas y) − y; it crosses zero at a rich-end pinch."""
-        OH, _, _, _, _, ystar_coeff = liquid(y, y_top)
+        OH, _, _, _, _, ystar_coeff, _ = liquid(y, y_top)
         CO3_M = (OH_mol_m3 - OH) / OH_PER_CO2 / 1000.0
         return ystar_coeff * CO3_M / (OH / 1000.0) ** 2 - y
 
@@ -244,12 +247,26 @@ def simulate_absorber(
         _, ntu_total, prof = march_down(y_out, H, keep=True)
         z_end = H
 
+    top_liquid = liquid(y_out, y_out)  # fresh solvent at the top (liquid inlet)
+    warnings_pre = []
+    if pk.kind == "structured":
+        warnings_pre.append(
+            "structured packing: mass transfer uses the legacy particle correlations "
+            "(not validated; Rocha–Bravo–Fair or Billet–Schultes pending, audit §8)"
+        )
+    F_factor = uG * math.sqrt(rho_g)
+    if pk.kind == "random" and F_factor > RANDOM_PACKING_F_MAX:
+        warnings_pre.append(
+            f"gas F-factor {F_factor:.2f} Pa^0.5 above the typical capacity of random packings "
+            f"(~{RANDOM_PACKING_F_MAX:g} Pa^0.5): the legacy flooding correlation likely "
+            "overestimates capacity (audit §8)"
+        )
     z_vals, y_vals = prof["z"], prof["y"]
     OH_vals = prof["OH"]
     x_vals = [G_mol_s * (yv - y_out) / max(L_mol_s, 1e-12) for yv in y_vals]
     exhausted = OH_vals[0] <= 0.01 * OH_mol_m3
 
-    warnings = []
+    warnings = list(warnings_pre)
     if exhausted:
         warnings.append(
             f"rich solvent leaves with {max(OH_vals[0], 0.0) / OH_mol_m3:.1%} of the inlet OH- "
@@ -314,11 +331,11 @@ def simulate_absorber(
         rho_l_kg_m3=rho_l,
         mu_g_Pa_s=props["mu_g"],
         mu_l_Pa_s=props["mu_l"],
-        kG_m_s=props["kG"],
-        kL_m_s=props["kL"],
+        kG_m_s=kG,
+        kL_m_s=top_liquid[2],
         KGa_1_s=prof["KGa"][-1],  # liquid inlet (top, fresh solvent)
-        a_eff_m2_m3=props["a_eff"],
-        wetting_fraction=props["wet"],
+        a_eff_m2_m3=top_liquid[6],
+        wetting_fraction=top_liquid[6] / pk.a_spec_m2_m3,
         Ha=prof["Ha"][-1],
         E=prof["E"][-1],
         H_cc_CO2=H_cc,

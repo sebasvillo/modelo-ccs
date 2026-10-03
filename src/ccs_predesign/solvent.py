@@ -124,3 +124,13 @@ DH_ABS_CARBONATE_J_mol = -109.4e3
 
 # Specific heat of 1–3 M NaOH solution. Own closure: typical value, ±5 % over that range.
 CP_SOLUTION_J_kgK = 3900.0
+
+
+def surface_tension_N_m(T_K: float, C_NaOH_M: float) -> float:
+    """Surface tension of the NaOH solution.
+
+    Water: IAPWS (2014) σ = 0.2358·τ^1.256·(1 − 0.625·τ), τ = 1 − T/647.096 (literature).
+    NaOH raises σ by about 1.8 mN/m per mol/L (own closure, typical of 1:1 hydroxide salts).
+    """
+    tau = 1.0 - T_K / 647.096
+    return 0.2358 * tau**1.256 * (1.0 - 0.625 * tau) + 1.8e-3 * C_NaOH_M
