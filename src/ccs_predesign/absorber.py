@@ -101,6 +101,7 @@ def simulate_absorber(
     OH_PER_CO2 = OH_PER_CO2_CARBONATE
     capacity_mol_s = OH_mol_m3 * Ql_m3_s / OH_PER_CO2
     kG, kL, a_eff, Dl = props0["kG"], props0["kL"], props0["a_eff"], props0["Dl"]
+    D_OH = solvent.diffusivity_NaOH_m2_s(T_K, solv.NaOH_M)
     ntu_per_KGa_m = c_tot / G_flux  # dNTU = KGa · c_tot · dz / G''
     K1, K2, Kw = solvent.carbonate_constants(T_K)
     ystar_coeff = H_cc * 1000.0 * Kw**2 / (K1 * K2 * c_tot)  # y* = coeff·[CO3]_M/[OH]_M²
@@ -116,7 +117,9 @@ def simulate_absorber(
             KG = 1.0 / (1.0 / kG + H_cc / kL)
             return OH, 0.0, 1.0, KG * a_eff, y
         Ha_loc = kinetics.hatta_number(k2 * OH, Dl, kL)
-        E_loc = kinetics.enhancement_factor(Ha_loc)
+        CO2_i = y * c_tot / H_cc  # conservative: gas-film resistance neglected for E_inf
+        E_inf = kinetics.enhancement_infinite(D_OH, OH, Dl, CO2_i, nu=OH_PER_CO2)
+        E_loc = kinetics.enhancement_factor_decoursey(Ha_loc, E_inf)
         KG = 1.0 / (1.0 / max(kG, 1e-12) + H_cc / max(kL * E_loc, 1e-12))
         CO3_M = (OH_mol_m3 - OH) / OH_PER_CO2 / 1000.0
         y_star = min(ystar_coeff * CO3_M / (OH / 1000.0) ** 2, y)
@@ -293,11 +296,11 @@ def simulate_absorber(
         mu_l_Pa_s=props["mu_l"],
         kG_m_s=props["kG"],
         kL_m_s=props["kL"],
-        KGa_1_s=KGa,
+        KGa_1_s=prof["KGa"][-1],  # liquid inlet (top, fresh solvent)
         a_eff_m2_m3=props["a_eff"],
         wetting_fraction=props["wet"],
-        Ha=Ha,
-        E=E,
+        Ha=prof["Ha"][-1],
+        E=prof["E"][-1],
         H_cc_CO2=H_cc,
         k1_pseudo_1_s=k1_pseudo,
         D_g_m2_s=props["Dg"],

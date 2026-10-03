@@ -99,3 +99,20 @@ def free_CO2_equilibrium_mol_m3(T_K: float, OH_mol_m3: float, CO3_mol_m3: float)
     K1, K2, Kw = carbonate_constants(T_K)
     OH_M, CO3_M = OH_mol_m3 / 1000.0, CO3_mol_m3 / 1000.0
     return 1000.0 * Kw**2 * CO3_M / (K1 * K2 * OH_M**2)
+
+
+# Limiting (infinite-dilution) diffusivity of NaOH at 25 °C, CRC Handbook of Chemistry and Physics.
+D_NAOH_298_m2_s = 2.13e-9
+
+
+def diffusivity_NaOH_m2_s(T_K: float, C_NaOH_M: float) -> float:
+    """NaOH (OH- with its counter-ion) diffusivity, Stokes–Einstein scaling D·μ/T = const.
+
+    Provenance: literature value + theory scaling, using this module's viscosity correlation.
+    """
+    return (
+        D_NAOH_298_m2_s
+        * (T_K / 298.15)
+        * viscosity_Pa_s(298.15, 0.0)
+        / viscosity_Pa_s(T_K, C_NaOH_M)
+    )
