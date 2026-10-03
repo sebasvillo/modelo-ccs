@@ -67,7 +67,7 @@ class TEASpec(_Frozen):
     """Cost and emission parameters of the legacy TEA (notebook cell 8)."""
 
     hours_per_year: float = Field(
-        8000.0, gt=0, le=8760, description="LEGACY(audit §7): cell 1 annual figures use 8760 h"
+        8000.0, gt=0, le=8760, description="operating hours per year (capacity factor × 8760)"
     )
     discount_rate: float = Field(0.10, gt=0)
     project_life_y: int = Field(20, gt=0)
@@ -254,21 +254,3 @@ class OptimizationResult(_Frozen):
     feasible: bool
     n_feasible: int
     warnings: tuple[str, ...] = ()
-
-
-class TEASummary(_Frozen):
-    """Single-design TEA of legacy cell 2 (no auxiliary CAPEX, 44.0 g/mol)."""
-
-    annual_captured_t_y: float
-    annual_electricity_kWh_y: float
-    column: ColumnCapex
-    capex_total_usd: float
-    opex_fixed_usd_y: float
-    opex_electricity_usd_y: float
-    opex_solvent_usd_y: float
-    opex_water_chem_usd_y: float
-    opex_total_usd_y: float
-    annualized_capex_usd_y: float
-    LCOC_usd_t: float
-    indirect_tCO2e_y: float
-    indirect_kgCO2e_t: float

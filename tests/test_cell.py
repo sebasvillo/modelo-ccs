@@ -38,3 +38,15 @@ def test_pipeline_uses_carbonate_route():
     result = run_case(CaseInput())
     assert result.absorber.best.OH_per_CO2 == 2.0
     assert result.cell.electrons_per_CO2 == 2.0
+
+
+def test_annual_figures_use_tea_operating_hours():
+    """Would have caught bug 9: annual tonnages used 8760 h while the TEA used 8000 h."""
+    from ccs_predesign.models import TEASpec
+    from ccs_predesign.tea import annual_t_from_mol_s
+
+    for hours in (8000.0, 7000.0):
+        r = run_case(CaseInput(tea=TEASpec(hours_per_year=hours)))
+        b = r.absorber.best
+        assert r.CO2_captured_t_y == pytest.approx(annual_t_from_mol_s(b.CO2_captured_mol_s, hours))
+        assert r.CO2_captured_t_y == pytest.approx(b.CO2_captured_mol_s * 44.01e-6 * 3600 * hours)
