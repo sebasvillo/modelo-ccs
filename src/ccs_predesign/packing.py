@@ -64,6 +64,23 @@ def wetting_fraction(uL_m_s: float, packing: Packing) -> float:
     return float(np.clip(0.20 + 0.80 * (1.0 - np.exp(-uL_m_s / max(u_ref, 1e-9))), 0.20, 1.0))
 
 
+def liquid_film_kL(
+    T_K: float, C_NaOH_M: float, uL_m_s: float, packing: Packing
+) -> tuple[float, float]:
+    """Liquid-film coefficient kL [m/s] and CO2 diffusivity D_l [m2/s] at the liquid temperature.
+
+    Same correlation as mass_transfer_coefficients, evaluated on its own so the absorber can
+    follow the local liquid temperature (errata E-013).
+    """
+    rho_l = solvent.density_kg_m3(T_K, C_NaOH_M)
+    mu_l = solvent.viscosity_Pa_s(T_K, C_NaOH_M)
+    Dl = solvent.diffusivity_CO2_m2_s(T_K, C_NaOH_M)
+    d_h = 4.0 * packing.void_fraction / max(packing.a_spec_m2_m3, 1e-12)
+    ReL = reynolds(rho_l, max(uL_m_s, 1e-12), d_h, mu_l)
+    ScL = schmidt(mu_l, rho_l, Dl)
+    return sherwood_liquid(ReL, ScL) * Dl / d_h, Dl
+
+
 def mass_transfer_coefficients(
     T_K: float,
     P_Pa: float,

@@ -34,6 +34,7 @@ class FlueGas(_Frozen):
 
 class Solvent(_Frozen):
     NaOH_M: float = Field(1.5, gt=0, description="circulating NaOH concentration [mol/L]")
+    T_in_C: float | None = Field(None, description="lean solvent inlet temperature; None = gas T")
 
 
 def _legacy_LG_grid() -> tuple[float, ...]:
@@ -161,6 +162,7 @@ class AbsorberResult(_Frozen):
     y_star: tuple[float, ...] = Field(description="CO2 equilibrium over the local liquid")
     rate_indicator: tuple[float, ...]
     OH_mol_m3: tuple[float, ...] = Field(description="local hydroxide concentration")
+    T_liquid_K: tuple[float, ...] = Field(description="local liquid temperature (adiabatic)")
     Ha_profile: tuple[float, ...]
     E_profile: tuple[float, ...]
     KGa_profile_1_s: tuple[float, ...]

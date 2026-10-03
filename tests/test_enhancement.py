@@ -35,9 +35,11 @@ def test_naoh_diffusivity_scaling():
 def test_profile_never_exceeds_instantaneous_limit(C, LG):
     """Would have caught audit §9 / rule 5: legacy E = Ha had no E <= E_inf bound."""
     r = simulate_absorber(FlueGas(), Solvent(NaOH_M=C), AbsorberSpec(), LG)
-    D_OH = solvent.diffusivity_NaOH_m2_s(r.T_K, C)
-    for y, OH, E in zip(r.yCO2, r.OH_mol_m3, r.E_profile, strict=True):
+    ions = solvent.naoh_ions_kmol_m3(C)
+    for y, OH, T, E in zip(r.yCO2, r.OH_mol_m3, r.T_liquid_K, r.E_profile, strict=True):
         if OH <= 0:
             continue
-        E_inf = kinetics.enhancement_infinite(D_OH, OH, r.D_l_m2_s, y * r.c_tot_mol_m3 / r.H_cc_CO2)
-        assert E <= E_inf * (1 + 1e-12)
+        D_OH = solvent.diffusivity_NaOH_m2_s(T, C)
+        D_l = solvent.diffusivity_CO2_m2_s(T, C)
+        CO2_i = y * r.c_tot_mol_m3 / solvent.henry_cc_CO2(T, ions)
+        assert E <= kinetics.enhancement_infinite(D_OH, OH, D_l, CO2_i) * (1 + 1e-12)

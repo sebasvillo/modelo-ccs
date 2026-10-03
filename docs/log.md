@@ -36,3 +36,8 @@ Three lines per working session: what was done, what was found, what comes next.
 - E-008 (#12): the cell moves 2 Na⁺ per CO2 (carbonate route, taken from the absorber chemistry): 2015 kWh/t, LCOC ≈ 250 USD/t, as the audit estimated.
 - E-009 (#13): annual tonnages use the TEA operating hours (8000 h/y); cell-2 TEA removed; 22.414 vs 44.615 was not an error. E-010 (#14): pump head = H + 5 m.
 - Next (session 8): §7 energy balance (heat of absorption) and the E_inf limit; then §8 packing correlations.
+
+## 2026-10-03 · Session 8 · Reaction limits, kinetics and energy balance (audit §7, §9)
+- E-011 (#15): E ≤ E∞ via DeCoursey (1974); E-012 (#16): Pohorecki & Moniuk (1988) k2 with local ionic strength (×5 at 45 °C, 1.5 M) makes the pall-ring base case feasible again (H 17.3 m).
+- E-013 (#17): adiabatic liquid energy balance (ΔH = −109.4 kJ/mol); rich solvent leaves at ~64 °C; liquid-side properties follow T_L.
+- Now: pall optimum 3.0 M, H 15.0 m, LCOC 249.5 USD/t (2 F/CO2 dominates). Next: §8 packing correlations (Onda, Billet–Schultes), then current-density optimisation.
