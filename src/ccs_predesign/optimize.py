@@ -37,6 +37,15 @@ def _minmax(values: np.ndarray) -> np.ndarray:
     return (values - vmin) / (vmax - vmin)
 
 
+def weighted_scores(objectives: dict[str, np.ndarray], weights: dict[str, float]) -> np.ndarray:
+    """Sum of weight × min–max normalised objective (lower is better), in weights order."""
+    score = None
+    for key, w in weights.items():
+        term = w * _minmax(np.asarray(objectives[key], dtype=float))
+        score = term if score is None else score + term
+    return score
+
+
 def choose_best(
     points: Sequence[DesignPoint], weights: dict[str, float] | None = None
 ) -> OptimizationResult:
@@ -45,10 +54,7 @@ def choose_best(
     LEGACY(audit §7): infeasible points (capture target missed) are not filtered out.
     """
     weights = LEGACY_WEIGHTS if weights is None else weights
-    score = None
-    for key, w in weights.items():
-        term = w * _minmax(np.array([getattr(p, key) for p in points], dtype=float))
-        score = term if score is None else score + term
+    score = weighted_scores({k: [getattr(p, k) for p in points] for k in weights}, weights)
     i_best = int(np.argmin(score))
     return OptimizationResult(
         best=points[i_best],
