@@ -12,7 +12,9 @@ _MW_CO2_g_mol = 44.01  # same literal as the legacy annual figures
 def run_case(inp: CaseInput) -> CaseResult:
     design = design_absorber_by_grid(inp.gas, inp.solvent, inp.absorber)
     best = design.best
-    cell = electrochemical_regeneration(best.CO2_captured_mol_s, inp.solvent.NaOH_M, inp.cell)
+    cell = electrochemical_regeneration(
+        best.CO2_captured_mol_s, inp.solvent.NaOH_M, inp.cell, electrons_per_CO2=best.OH_per_CO2
+    )
 
     def t_per_year(mol_s: float) -> float:
         return mol_s * _MW_CO2_g_mol * SECONDS_PER_YEAR / 1e6

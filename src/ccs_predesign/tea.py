@@ -129,7 +129,9 @@ def evaluate_design_point(
     Points that miss the capture target are costed too; optimize.choose_best excludes them.
     """
     res = simulate_absorber(flue, solv, absorber, LG_vol)
-    cell = electrochemical_regeneration(res.CO2_captured_mol_s, solv.NaOH_M, cell_spec)
+    cell = electrochemical_regeneration(
+        res.CO2_captured_mol_s, solv.NaOH_M, cell_spec, electrons_per_CO2=res.OH_per_CO2
+    )
     costs = design_costs(
         res.D_col_m,
         res.height_m,

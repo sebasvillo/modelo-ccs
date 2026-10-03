@@ -134,6 +134,7 @@ def test_cell(ns, CO2_mol_s, j, C, mode, V):
         CO2_mol_s,
         C,
         CellSpec(j_mA_cm2=j, tna_mode=mode, tna_const=0.9, V_override_V=V, CO2_release_eff=0.97),
+        electrons_per_CO2=1.0,  # legacy sizing (E-008 moved the model to 2 for carbonate)
     )
     for old_key, new_key in CELL_FIELDS.items():
         assert getattr(new, new_key) == old[old_key], old_key
@@ -151,7 +152,8 @@ def test_column_capex(ns, D, H, P_bar):
 
 
 def legacy_cell_result(old: dict) -> CellResult:
-    return CellResult(**{new: old[legacy] for legacy, new in CELL_FIELDS.items()})
+    fields = {new: old[legacy] for legacy, new in CELL_FIELDS.items()}
+    return CellResult(**fields, electrons_per_CO2=1.0)
 
 
 @pytest.mark.parametrize(("C", "LG"), [(1.5, 0.005), (0.25, 0.07), (4.0, 0.004), (2.0, 0.03)])

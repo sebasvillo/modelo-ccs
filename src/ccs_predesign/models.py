@@ -162,6 +162,7 @@ class AbsorberResult(_Frozen):
     E_profile: tuple[float, ...]
     KGa_profile_1_s: tuple[float, ...]
     OH_capacity_CO2_mol_s: float = Field(description="max CO2 the solvent can take as carbonate")
+    OH_per_CO2: float = Field(description="OH- consumed per CO2 absorbed (2: carbonate route)")
     solvent_exhausted: bool
     warnings: tuple[str, ...] = ()
 
@@ -184,6 +185,7 @@ class CellResult(_Frozen):
     j_A_m2: float
     tna: float
     V_cell_V: float
+    electrons_per_CO2: float = Field(description="Na+ moved per CO2: 2 carbonate, 1 bicarbonate")
     E_J_mol: float
     A_cell_m2: float
     I_cell_A: float
