@@ -101,6 +101,7 @@ def test_packing_correlations(ns, name):
     ],
 )
 def test_mass_transfer_coefficients(ns, name, T, C, E):
+    """Legacy passed flows over A_ref = 1 m2, i.e. velocities numerically equal to the flows."""
     old = ns["kL_kG_KGa"](T, 1.01e5, COMP, 53.8, 0.27, legacy_packing(ns, name), C, E=E)
     new = packing.mass_transfer_coefficients(
         T, 1.01e5, COMP, 53.8, 0.27, packing.PACKINGS[name], C, 0.001, E=E

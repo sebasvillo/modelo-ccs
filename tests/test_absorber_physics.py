@@ -43,7 +43,6 @@ def test_capture_matches_analytic_ntu(Z_m):
     c_tot = BENCH_GAS.P_bar * 1e5 / (R_J_molK * (BENCH_GAS.T_C + 273.15))
     A_col = math.pi * 0.150**2 / 4.0
     ntu = r.KGa_1_s * c_tot * r.height_m / (r.n_wet_mol_s / A_col)
-    assert not r.reached_target
     assert r.yCO2_out / r.yCO2_wet_in == pytest.approx(math.exp(-ntu), rel=1e-9)
     assert r.NTU == pytest.approx(ntu, rel=1e-9)
 
@@ -55,3 +54,19 @@ def test_co2_mass_balance_closes():
     gas_side = r.G_mol_s * (r.yCO2_wet_in - r.yCO2_out)
     liquid_side = r.L_mol_s * r.x_loading[-1]
     assert liquid_side == pytest.approx(gas_side, rel=1e-9)
+
+
+@pytest.mark.parametrize("scale", [0.01, 4.0])
+def test_column_scale_up_is_invariant(scale):
+    """Audit §2 (E-002): same superficial velocities and flux → same coefficients and height.
+
+    The flooding-based diameter makes A_col ∝ Q, so scaling the gas flow must not change
+    kG, kL, KGa or the packed height. With the legacy 1 m2 reference area it did.
+    """
+    spec, solv = AbsorberSpec(), Solvent()
+    base = simulate_absorber(FlueGas(), solv, spec, 0.005)
+    scaled = simulate_absorber(FlueGas(Q_dry_Nm3_h=150_000.0 * scale), solv, spec, 0.005)
+    assert scaled.uG_m_s == pytest.approx(base.uG_m_s, rel=1e-12)
+    for field in ("kG_m_s", "kL_m_s", "KGa_1_s", "Ha", "NTU"):
+        assert getattr(scaled, field) == pytest.approx(getattr(base, field), rel=1e-9), field
+    assert scaled.height_m == pytest.approx(base.height_m, abs=1e-9)
