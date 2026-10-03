@@ -249,7 +249,10 @@ class OptimizationResult(_Frozen):
     best: DesignPoint
     best_score: float
     points: tuple[DesignPoint, ...]
-    scores: tuple[float, ...]
+    scores: tuple[float, ...] = Field(description="NaN for points that miss the capture target")
+    feasible: bool
+    n_feasible: int
+    warnings: tuple[str, ...] = ()
 
 
 class TEASummary(_Frozen):

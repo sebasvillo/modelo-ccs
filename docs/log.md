@@ -21,3 +21,8 @@ Three lines per working session: what was done, what was found, what comes next.
 - Safety nets for physics work: component-level legacy equivalence (80 tests) and a headline-output snapshot tied to the latest errata id (#4).
 - E-001 (#5): dimensionless NTU step K_G·a·c_tot·dz/G''; E-002 (#6): Re/wetting with real superficial velocities. Base case H 14.86 → 0.04 → 0.14 m, as the audit predicted (compensating errors removed one at a time).
 - Next (session 5): §3, replace the 0.001 liquid-resistance factor by the CO2 Henry constant with Weisenberger–Schumpe salting-out.
+
+## 2026-10-03 · Session 5 · Liquid side, stoichiometry, feasible optimisation (audit §3, §4, §7)
+- E-003 (#7): Henry constant (Sander 2015) with Weisenberger–Schumpe salting-out replaces the 0.001 factor; column now liquid-film controlled, KGa ≈ 0.3 1/s, rate peaks near 1.5 M NaOH.
+- E-004 (#8): local OH⁻ balance, local Ha/E/KGa and a hard stoichiometric limit with warnings; E-005 (#9): optimiser ranks only designs that reach the target.
+- Result: pall ring 25 mm cannot reach 90 % in 30 m; structured 250Y optimum 1.79 M, H 25.1 m, LCOC 126.7 USD/t. Next: §5 counter-current BVP and a physical y* (session 6).
