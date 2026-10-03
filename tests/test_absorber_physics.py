@@ -1,5 +1,6 @@
 """Physics checks of the absorber integration (audit §1, errata E-001)."""
 
+import itertools
 import math
 
 import pint
@@ -32,17 +33,19 @@ def test_legacy_exponent_was_not_dimensionless():
 
 @pytest.mark.parametrize("Z_m", [0.15, 0.25, 0.35])
 def test_capture_matches_analytic_ntu(Z_m):
-    """With y* = 0 and constant K_G·a, y_out/y_in = exp(−K_G·a·c_tot·Z/G'') exactly."""
+    """With y* = 0, y_out/y_in = exp(−Σ K_G·a·c_tot·dz/G''), using the local K_G·a profile."""
     r = simulate_absorber(
         BENCH_GAS,
         Solvent(NaOH_M=0.8),
-        AbsorberSpec(capture_target=0.999999, max_height_m=Z_m, H_eq=0.0),
+        AbsorberSpec(capture_target=0.999999, max_height_m=Z_m, H_eq=0.0, dz_m=0.01),
         LG_vol=0.1235,
         D_col_fixed_m=0.150,
     )
     c_tot = BENCH_GAS.P_bar * 1e5 / (R_J_molK * (BENCH_GAS.T_C + 273.15))
-    A_col = math.pi * 0.150**2 / 4.0
-    ntu = r.KGa_1_s * c_tot * r.height_m / (r.n_wet_mol_s / A_col)
+    G_flux = r.n_wet_mol_s / (math.pi * 0.150**2 / 4.0)
+    dz = [b - a for a, b in itertools.pairwise(r.z_m)]
+    ntu = sum(K * c_tot * h / G_flux for K, h in zip(r.KGa_profile_1_s[:-1], dz, strict=True))
+    assert not r.solvent_exhausted
     assert r.yCO2_out / r.yCO2_wet_in == pytest.approx(math.exp(-ntu), rel=1e-9)
     assert r.NTU == pytest.approx(ntu, rel=1e-9)
 

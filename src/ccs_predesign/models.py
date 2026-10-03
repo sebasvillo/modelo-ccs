@@ -123,7 +123,7 @@ class AbsorberResult(_Frozen):
     mu_l_Pa_s: float
     kG_m_s: float
     kL_m_s: float
-    KGa_1_s: float
+    KGa_1_s: float = Field(description="at the liquid inlet; see KGa_profile_1_s")
     a_eff_m2_m3: float
     wetting_fraction: float
     Ha: float
@@ -158,6 +158,13 @@ class AbsorberResult(_Frozen):
     x_loading: tuple[float, ...]
     y_star: tuple[float, ...]
     rate_indicator: tuple[float, ...]
+    OH_mol_m3: tuple[float, ...] = Field(description="local hydroxide concentration")
+    Ha_profile: tuple[float, ...]
+    E_profile: tuple[float, ...]
+    KGa_profile_1_s: tuple[float, ...]
+    OH_capacity_CO2_mol_s: float = Field(description="max CO2 the solvent can take as carbonate")
+    solvent_exhausted: bool
+    warnings: tuple[str, ...] = ()
 
     @property
     def Qg_actual_m3_h(self) -> float:
