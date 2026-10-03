@@ -36,7 +36,7 @@ docs/audit-2026-09.md  # code audit of the legacy notebook
 docs/errata.md    # every numerical change vs the thesis, with the reason
 docs/log.md       # 3-line summary per working session
 ```
-Status: cell 1 of the legacy notebook (absorber + L/G scan + cell sizing) lives in `constants.py`, `gas.py`, `solvent.py`, `kinetics.py`, `packing.py`, `absorber.py`, `cell.py`, `models.py` and `pipeline.py` (`run_case(CaseInput)`), bit-for-bit equal to the legacy functions (`tests/golden/test_cell1_equivalence.py`). Legacy bugs are kept on purpose and tagged `LEGACY(audit §n)` in the code; each one is removed only by a physics PR with an errata entry. TEA, optimiser and bench cells (2, 4, 8, 10, 12, 17) are not ported yet.
+Status: cell 1 of the legacy notebook (absorber + L/G scan + cell sizing) lives in `constants.py`, `gas.py`, `solvent.py`, `kinetics.py`, `packing.py`, `absorber.py`, `cell.py`, `models.py` and `pipeline.py` (`run_case(CaseInput)`), bit-for-bit equal to the legacy functions (`tests/golden/test_cell1_equivalence.py`). Legacy bugs are kept on purpose and tagged `LEGACY(audit §n)` in the code; each one is removed only by a physics PR with an errata entry. TEA (`tea.py`: cell 8 `evaluate_design_point`, cell 2 `tea_summary`), optimiser (`optimize.py`: cells 10/12 two-stage grid) and the fixed-diameter bench variant (cell 17) are ported too, checked bit-for-bit in `tests/golden/test_tea_equivalence.py` (notebook state replayed, so the 300 000 Nm3/h bug is included). Cell 4's optimiser is dead code (only driven by failing cell 6) and was not ported.
 
 ## Hard rules
 1. **Physics lives only in `src/ccs_predesign`.** API and frontend never compute physics.

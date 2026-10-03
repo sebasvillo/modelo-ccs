@@ -11,9 +11,16 @@ logger = logging.getLogger(__name__)
 
 
 def simulate_absorber(
-    flue: FlueGas, solv: Solvent, spec: AbsorberSpec, LG_vol: float
+    flue: FlueGas,
+    solv: Solvent,
+    spec: AbsorberSpec,
+    LG_vol: float,
+    D_col_fixed_m: float | None = None,
 ) -> AbsorberResult:
     """Integrate the column for a volumetric L/G (m3 liquid / m3 actual gas).
+
+    The diameter comes from spec.flood_fraction of the flooding velocity, unless
+    D_col_fixed_m is given (legacy cell 4 variant, used for the bench column).
 
     LEGACY(audit §1): the step exponent KGa/G·dz is not dimensionless.
     LEGACY(audit §4): no stoichiometric OH- limit; Ha and E fixed at fresh-solvent values.
@@ -35,9 +42,14 @@ def simulate_absorber(
 
     Ql_m3_s = LG_vol * Qg_m3_s
     rho_l = solvent.density_kg_m3(T_K, solv.NaOH_M)
-    D_col, v_flood, v_oper = packing.column_diameter_m(
-        Qg_m3_s, rho_g, rho_l, pk, flood_frac=spec.flood_fraction
-    )
+    if D_col_fixed_m is None:
+        D_col, v_flood, v_oper = packing.column_diameter_m(
+            Qg_m3_s, rho_g, rho_l, pk, flood_frac=spec.flood_fraction
+        )
+    else:
+        D_col = float(D_col_fixed_m)
+        v_flood = packing.flooding_velocity_m_s(rho_g, rho_l, pk)
+        v_oper = Qg_m3_s / max(math.pi * D_col**2 / 4.0, 1e-12)
     A_col = math.pi * D_col**2 / 4.0
     uG = Qg_m3_s / A_col
     uL = Ql_m3_s / A_col
@@ -138,6 +150,8 @@ def simulate_absorber(
         D_col_m=D_col,
         v_flood_m_s=v_flood,
         v_oper_m_s=v_oper,
+        flood_fraction_actual=uG / max(v_flood, 1e-12),
+        feasible_hydraulically=uG <= spec.flood_fraction * v_flood,
         height_m=height_m,
         dpdz_Pa_m=dpdz,
         deltaP_Pa=deltaP,

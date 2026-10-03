@@ -67,11 +67,34 @@ class CellSpec(_Frozen):
     CO2_release_eff: float = Field(0.98, gt=0, le=1)
 
 
+class TEASpec(_Frozen):
+    """Cost and emission parameters of the legacy TEA (notebook cell 8)."""
+
+    hours_per_year: float = Field(
+        8000.0, gt=0, le=8760, description="LEGACY(audit §7): cell 1 annual figures use 8760 h"
+    )
+    discount_rate: float = Field(0.10, gt=0)
+    project_life_y: int = Field(20, gt=0)
+    electricity_usd_kWh: float = Field(0.12, ge=0)
+    grid_EF_kgCO2e_kWh: float = Field(0.2104, ge=0, description="Colombian grid default")
+    fixed_om_fraction: float = Field(0.04, ge=0, description="fixed O&M / installed CAPEX")
+    solvent_makeup_usd_t: float = Field(0.75, ge=0)
+    water_chem_usd_t: float = Field(0.15, ge=0)
+    cell_capex_usd_m2: float = Field(420.0, ge=0)
+    blower_capex_usd_kW: float = Field(280.0, ge=0)
+    pump_capex_usd_kW: float = Field(180.0, ge=0)
+    shell_usd_m2: float = Field(2500.0, ge=0)
+    packing_usd_m3: float = Field(3500.0, ge=0)
+    internals_usd_m2: float = Field(1800.0, ge=0)
+    installation_factor: float = Field(1.65, gt=0)
+
+
 class CaseInput(_Frozen):
     gas: FlueGas = FlueGas()
     solvent: Solvent = Solvent()
     absorber: AbsorberSpec = AbsorberSpec()
     cell: CellSpec = CellSpec()
+    tea: TEASpec = TEASpec()
 
 
 # ---------------------------------------------------------------- outputs
@@ -117,6 +140,8 @@ class AbsorberResult(_Frozen):
     D_col_m: float
     v_flood_m_s: float
     v_oper_m_s: float
+    flood_fraction_actual: float = Field(description="uG / v_flood")
+    feasible_hydraulically: bool = Field(description="uG <= flood_fraction · v_flood")
     height_m: float
     dpdz_Pa_m: float
     deltaP_Pa: float
@@ -168,3 +193,70 @@ class CaseResult(_Frozen):
     CO2_stack_t_y: float
     CO2_product_t_y: float
     E_cell_kWh_t: float
+
+
+class ColumnCapex(_Frozen):
+    A_cs_m2: float
+    shell_area_m2: float
+    packed_volume_m3: float
+    pressure_factor: float
+    shell_usd: float
+    packing_usd: float
+    internals_usd: float
+    purchased_usd: float
+    installed_usd: float
+
+
+class DesignPoint(_Frozen):
+    """One (NaOH, L/G) point of the design space with its TEA (legacy cell 8)."""
+
+    NaOH_M: float
+    LG_vol: float
+    absorber: AbsorberResult
+    cell: CellResult
+    P_total_W: float
+    CO2_captured_t_y: float
+    CO2_stack_t_y: float
+    CO2_product_t_y: float
+    E_cell_kWh_t: float
+    E_total_kWh_t: float
+    capex_column_usd: float
+    capex_cell_usd: float
+    capex_blower_usd: float
+    capex_pump_usd: float
+    capex_total_usd: float
+    annualized_capex_usd_y: float
+    opex_fixed_usd_y: float
+    opex_electricity_usd_y: float
+    opex_solvent_usd_y: float
+    opex_water_chem_usd_y: float
+    opex_total_usd_y: float
+    LCOC_usd_t: float
+    indirect_kgCO2e_y: float
+    indirect_tCO2e_y: float
+    indirect_kgCO2e_t: float
+
+
+class OptimizationResult(_Frozen):
+    best: DesignPoint
+    best_score: float
+    points: tuple[DesignPoint, ...]
+    scores: tuple[float, ...]
+
+
+class TEASummary(_Frozen):
+    """Single-design TEA of legacy cell 2 (no auxiliary CAPEX, 44.0 g/mol)."""
+
+    annual_captured_t_y: float
+    annual_electricity_kWh_y: float
+    column: ColumnCapex
+    capex_total_usd: float
+    opex_fixed_usd_y: float
+    opex_electricity_usd_y: float
+    opex_solvent_usd_y: float
+    opex_water_chem_usd_y: float
+    opex_total_usd_y: float
+    annualized_capex_usd_y: float
+    LCOC_usd_t: float
+    indirect_tCO2e_y: float
+    indirect_kgCO2e_t: float
