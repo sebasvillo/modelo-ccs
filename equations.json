@@ -286,7 +286,7 @@
         "CO3",
         "K1",
         "K2",
-        "OH"
+        "OH_M"
       ],
       "provenance": "theory",
       "reference": "plummer1982",
@@ -394,7 +394,7 @@
       "symbols": [
         "I",
         "C",
-        "OH"
+        "OH_M"
       ],
       "provenance": "theory",
       "reference": null,
@@ -700,7 +700,7 @@
       "id": "absorber.two_film",
       "title_es": "Coeficiente global (dos películas)",
       "title_en": "Overall coefficient (two films)",
-      "latex": "\\dfrac{1}{K_G} = \\dfrac{1}{k_G} + \\dfrac{H^{cc}}{E\\,k_L}",
+      "latex": "\\dfrac{1}{K_G} = \\dfrac{1}{k_G} + \\dfrac{H^{cc}}{E\\,k_L},\\qquad K_Ga = K_G\\,a_e",
       "meaning_es": "Las resistencias del gas y del líquido (acelerado por la reacción) se suman en serie.",
       "meaning_en": "Gas and liquid resistances (the latter sped up by reaction) add in series.",
       "symbols": [
@@ -708,7 +708,8 @@
         "kG",
         "H_cc",
         "E",
-        "kL"
+        "kL",
+        "a_e"
       ],
       "provenance": "theory",
       "reference": "danckwerts1970",
@@ -749,6 +750,50 @@
         "E-001",
         "E-007"
       ]
+    },
+    {
+      "id": "absorber.height",
+      "title_es": "Altura empacada",
+      "title_en": "Packed height",
+      "latex": "H = \\dfrac{NTU\\,G''}{c_{tot}\\,\\overline{K_G a_e}},\\qquad \\overline{K_G a_e} = \\dfrac{1}{H}\\int_0^H K_G a_e\\,dz",
+      "meaning_es": "Altura necesaria: unidades de transferencia por la altura de cada una, con el coeficiente promedio de la torre.",
+      "meaning_en": "Required height: transfer units times the height of one unit, with the column-averaged coefficient.",
+      "symbols": [
+        "H",
+        "NTU",
+        "G_flux",
+        "c_tot",
+        "KGa_mean"
+      ],
+      "provenance": "theory",
+      "reference": "seader2011",
+      "validity": null,
+      "implemented_by": [
+        "absorber:simulate_absorber"
+      ],
+      "errata": [
+        "E-001",
+        "E-007"
+      ]
+    },
+    {
+      "id": "absorber.capture",
+      "title_es": "Fracción de captura",
+      "title_en": "Capture fraction",
+      "latex": "\\phi = \\dfrac{y_{in} - y_{out}}{y_{in}}",
+      "meaning_es": "Qué parte del CO₂ que entra queda en el solvente.",
+      "meaning_en": "Share of the incoming CO₂ that ends up in the solvent.",
+      "symbols": [
+        "y",
+        "y_top"
+      ],
+      "provenance": "theory",
+      "reference": null,
+      "validity": null,
+      "implemented_by": [
+        "absorber:simulate_absorber"
+      ],
+      "errata": []
     },
     {
       "id": "absorber.hydroxide_balance",
@@ -932,11 +977,11 @@
       "symbols": [
         "t_Na",
         "C",
-        "j"
+        "j_mA"
       ],
       "provenance": "own_closure",
       "reference": "thesis",
-      "validity": "j in mA/cm²; clipped to 0.10–0.98",
+      "validity": "clipped to 0.10–0.98",
       "implemented_by": [
         "cell:tna_empirical"
       ],
@@ -951,11 +996,11 @@
       "meaning_en": "Cell voltage versus current density; fit to the thesis cell data.",
       "symbols": [
         "V",
-        "j"
+        "j_mA"
       ],
       "provenance": "own_closure",
       "reference": "thesis",
-      "validity": "j in mA/cm²; fit range not documented",
+      "validity": "fit range not documented",
       "implemented_by": [
         "cell:voltage_from_current_density_V"
       ],
@@ -1051,7 +1096,7 @@
       "id": "tea.indirect_emissions",
       "title_es": "Emisiones indirectas",
       "title_en": "Indirect emissions",
-      "latex": "\\dfrac{\\text{kgCO}_2\\text{e}}{\\text{t}} = \\dfrac{h_{op}\\,\\dot W_{total}\\,EF}{\\dot m_{CO_2}}",
+      "latex": "\\dfrac{\\text{kgCO}_2\\text{e}}{\\text{t}} = \\dfrac{h_{op}\\,\\dot W\\,EF}{1000\\,\\dot m_{CO_2}}",
       "meaning_es": "CO₂ emitido al generar la electricidad que consume la captura, por tonelada capturada.",
       "meaning_en": "CO₂ emitted to generate the electricity the capture uses, per tonne captured.",
       "symbols": [
@@ -1287,6 +1332,13 @@
       "es": "concentración local de hidróxido",
       "en": "local hydroxide concentration"
     },
+    "OH_M": {
+      "key": "OH_M",
+      "latex": "[OH^-]",
+      "unit": "mol/L",
+      "es": "concentración local de hidróxido",
+      "en": "local hydroxide concentration"
+    },
     "CO3": {
       "key": "CO3",
       "latex": "[CO_3^{2-}]",
@@ -1419,6 +1471,13 @@
       "unit": "m/s",
       "es": "coeficiente de película de líquido",
       "en": "liquid-film coefficient"
+    },
+    "KGa_mean": {
+      "key": "KGa_mean",
+      "latex": "\\overline{K_G a_e}",
+      "unit": "1/s",
+      "es": "coeficiente volumétrico promedio en la altura",
+      "en": "height-averaged volumetric coefficient"
     },
     "KG": {
       "key": "KG",
@@ -1594,6 +1653,13 @@
       "unit": "W",
       "es": "potencia",
       "en": "power"
+    },
+    "j_mA": {
+      "key": "j_mA",
+      "latex": "j",
+      "unit": "mA/cm²",
+      "es": "densidad de corriente de la celda",
+      "en": "cell current density"
     },
     "j": {
       "key": "j",
