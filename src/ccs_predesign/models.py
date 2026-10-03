@@ -52,6 +52,9 @@ class AbsorberSpec(_Frozen):
     )
     objective: Literal["min_total_power", "min_height"] = "min_total_power"
     pump_eff: float = Field(0.70, gt=0, le=1)
+    pump_extra_head_m: float = Field(
+        5.0, ge=0, description="own closure: distributor, freeboard and piping losses above the bed"
+    )
     blower_eff: float = Field(0.68, gt=0, le=1)
 
 
@@ -147,6 +150,7 @@ class AbsorberResult(_Frozen):
     deltaP_Pa: float
     blower_power_W: float
     pump_power_W: float
+    pump_head_m: float
     hydraulic_power_W: float
     CO2_in_mol_s: float
     CO2_out_mol_s: float

@@ -83,3 +83,14 @@ def test_column_scale_up_is_invariant(scale):
     for field in ("kG_m_s", "kL_m_s", "KGa_1_s", "Ha", "NTU"):
         assert getattr(scaled, field) == pytest.approx(getattr(base, field), rel=1e-9), field
     assert scaled.height_m == pytest.approx(base.height_m, abs=1e-9)
+
+
+@pytest.mark.parametrize("H_max", [2.0, 10.0, 30.0])
+def test_pump_lifts_solvent_above_the_bed(H_max):
+    """Would have caught audit §10: legacy head 5 + 0.5·H is below H for H > 10 m."""
+    spec = AbsorberSpec(max_height_m=H_max)
+    r = simulate_absorber(FlueGas(), Solvent(), spec, 0.06)
+    assert r.pump_head_m >= r.height_m
+    assert r.pump_head_m == pytest.approx(r.height_m + spec.pump_extra_head_m, rel=1e-12)
+    expected_W = r.rho_l_kg_m3 * 9.81 * r.pump_head_m * r.Ql_m3_s / spec.pump_eff
+    assert r.pump_power_W == pytest.approx(expected_W, rel=1e-12)

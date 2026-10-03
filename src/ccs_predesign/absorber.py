@@ -260,7 +260,8 @@ def simulate_absorber(
     dpdz = packing.pressure_drop_ergun_Pa_m(props["rho_g"], props["mu_g"], uG, pk)
     deltaP = dpdz * height_m
     blower_W = deltaP * Qg_m3_s / max(spec.blower_eff, 1e-12)
-    pump_head_m = 5.0 + 0.5 * height_m  # LEGACY(audit §10): should be >= H + losses
+    # the pump lifts the solvent to the distributor above the bed (audit §10, errata E-010)
+    pump_head_m = height_m + spec.pump_extra_head_m
     pump_W = rho_l * G_m_s2 * pump_head_m * Ql_m3_s / max(spec.pump_eff, 1e-12)
 
     CO2_in = G_mol_s * y_in
@@ -317,6 +318,7 @@ def simulate_absorber(
         deltaP_Pa=deltaP,
         blower_power_W=blower_W,
         pump_power_W=pump_W,
+        pump_head_m=pump_head_m,
         hydraulic_power_W=blower_W + pump_W,
         CO2_in_mol_s=CO2_in,
         CO2_out_mol_s=CO2_out,

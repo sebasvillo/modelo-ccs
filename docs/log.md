@@ -31,3 +31,8 @@ Three lines per working session: what was done, what was found, what comes next.
 - E-006 (#10): y* from carbonate speciation (Plummer & Busenberg 1982, Harned & Owen) replaces the tunable H_eq slope; y* ≈ 1e-10 with excess OH⁻.
 - E-007 (#11): counter-current column; design mode marches up from the rich end to the exact target height, rating mode shoots on the outlet marching down from the lean end with exact pinch handling (scipy brentq).
 - Structured 250Y optimum now H 22.5 m, LCOC 126.4 USD/t; pall ring still infeasible at 30 m (88.7 %). Next: §6 cell electrons per CO2 (session 7).
+
+## 2026-10-03 · Session 7 · Cell electrons and TEA consistency (audit §6, §7, §10)
+- E-008 (#12): the cell moves 2 Na⁺ per CO2 (carbonate route, taken from the absorber chemistry): 2015 kWh/t, LCOC ≈ 250 USD/t, as the audit estimated.
+- E-009 (#13): annual tonnages use the TEA operating hours (8000 h/y); cell-2 TEA removed; 22.414 vs 44.615 was not an error. E-010 (#14): pump head = H + 5 m.
+- Next (session 8): §7 energy balance (heat of absorption) and the E_inf limit; then §8 packing correlations.
