@@ -36,7 +36,7 @@ docs/audit-2026-09.md  # code audit of the legacy notebook
 docs/errata.md    # every numerical change vs the thesis, with the reason
 docs/log.md       # 3-line summary per working session
 ```
-Status: cell 1 of the legacy notebook (absorber + L/G scan + cell sizing) lives in `constants.py`, `gas.py`, `solvent.py`, `kinetics.py`, `packing.py`, `absorber.py`, `cell.py`, `models.py` and `pipeline.py` (`run_case(CaseInput)`), ported bit-for-bit in phase 1. Remaining legacy bugs are tagged `LEGACY(audit §n)` in the code; each one is removed only by a physics PR with an errata entry. Fixed so far: §1 (E-001). TEA (`tea.py`: cell 8 `evaluate_design_point`, cell 2 `tea_summary`), optimiser (`optimize.py`: cells 10/12 two-stage grid) and the fixed-diameter bench variant (cell 17) are ported too, ported bit-for-bit in phase 1. Cell 4's optimiser is dead code (only driven by failing cell 6) and was not ported.
+Status: cell 1 of the legacy notebook (absorber + L/G scan + cell sizing) lives in `constants.py`, `gas.py`, `solvent.py`, `kinetics.py`, `packing.py`, `absorber.py`, `cell.py`, `models.py` and `pipeline.py` (`run_case(CaseInput)`), ported bit-for-bit in phase 1. Remaining legacy bugs are tagged `LEGACY(audit §n)` in the code; each one is removed only by a physics PR with an errata entry. Fixed so far: §1 (E-001), §2 (E-002). TEA (`tea.py`: cell 8 `evaluate_design_point`, cell 2 `tea_summary`), optimiser (`optimize.py`: cells 10/12 two-stage grid) and the fixed-diameter bench variant (cell 17) are ported too, ported bit-for-bit in phase 1. Cell 4's optimiser is dead code (only driven by failing cell 6) and was not ported.
 
 ## Hard rules
 1. **Physics lives only in `src/ccs_predesign`.** API and frontend never compute physics.
