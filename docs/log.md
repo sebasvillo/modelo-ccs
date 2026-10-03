@@ -41,3 +41,8 @@ Three lines per working session: what was done, what was found, what comes next.
 - E-011 (#15): E ≤ E∞ via DeCoursey (1974); E-012 (#16): Pohorecki & Moniuk (1988) k2 with local ionic strength (×5 at 45 °C, 1.5 M) makes the pall-ring base case feasible again (H 17.3 m).
 - E-013 (#17): adiabatic liquid energy balance (ΔH = −109.4 kJ/mol); rich solvent leaves at ~64 °C; liquid-side properties follow T_L.
 - Now: pall optimum 3.0 M, H 15.0 m, LCOC 249.5 USD/t (2 F/CO2 dominates). Next: §8 packing correlations (Onda, Billet–Schultes), then current-density optimisation.
+
+## 2026-10-03 · Session 9 · Onda correlations and current density (audit §8 partial, bug 9)
+- E-014 (#18): Onda (1968) kG, kL and wetted area for random packings; kL 4.4e-4 m/s, KGa 0.58 1/s; pall optimum H 16.3 m, LCOC 249.6 USD/t. Structured packings and hydraulics stay legacy, flagged with warnings.
+- #19: optional current-density optimisation per design point (CellSpec.optimize_j); with the legacy 420 USD/m² cell cost the optimum hits 50 mA/cm² (LCOC ~174 USD/t), so the cell cost needs a source (audit §12).
+- Blocked on sources from Sebas: Billet–Schultes / Rocha–Bravo–Fair constants, flooding/ΔP correlation, TPMS data (Ellebracht 2023), cell cost and j–V range.

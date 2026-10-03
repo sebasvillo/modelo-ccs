@@ -2,6 +2,8 @@
 
 import math
 
+from scipy import optimize
+
 from .absorber import simulate_absorber
 from .cell import electrochemical_regeneration
 from .models import (
@@ -125,18 +127,46 @@ def evaluate_design_point(
     Points that miss the capture target are costed too; optimize.choose_best excludes them.
     """
     res = simulate_absorber(flue, solv, absorber, LG_vol)
-    cell = electrochemical_regeneration(
-        res.CO2_captured_mol_s, solv.NaOH_M, cell_spec, electrons_per_CO2=res.OH_per_CO2
+
+    def cost_at(spec: CellSpec):
+        cell = electrochemical_regeneration(
+            res.CO2_captured_mol_s, solv.NaOH_M, spec, electrons_per_CO2=res.OH_per_CO2
+        )
+        costs = design_costs(
+            res.D_col_m,
+            res.height_m,
+            res.blower_power_W,
+            res.pump_power_W,
+            res.CO2_captured_mol_s,
+            res.CO2_out_mol_s,
+            cell,
+            flue.P_bar,
+            tea,
+        )
+        return cell, costs
+
+    warnings: list[str] = []
+    if cell_spec.optimize_j:
+        # bug 9: trade cell CAPEX (area ∝ 1/j) against electricity (V and t_Na depend on j)
+        lo, hi = cell_spec.j_min_mA_cm2, cell_spec.j_max_mA_cm2
+        best = optimize.minimize_scalar(
+            lambda j: cost_at(cell_spec.model_copy(update={"j_mA_cm2": j}))[1]["LCOC_usd_t"],
+            bounds=(lo, hi),
+            method="bounded",
+            options={"xatol": 1e-3},
+        )
+        cell_spec = cell_spec.model_copy(update={"j_mA_cm2": float(best.x)})
+        if min(best.x - lo, hi - best.x) < 1e-2 * (hi - lo):
+            warnings.append(
+                f"optimal current density {best.x:.0f} mA/cm2 sits at the search bound "
+                f"[{lo:g}, {hi:g}]; the j–V fit range of the thesis cell is not documented"
+            )
+    cell, costs = cost_at(cell_spec)
+    return DesignPoint(
+        NaOH_M=solv.NaOH_M,
+        LG_vol=LG_vol,
+        absorber=res,
+        cell=cell,
+        warnings=tuple(warnings),
+        **costs,
     )
-    costs = design_costs(
-        res.D_col_m,
-        res.height_m,
-        res.blower_power_W,
-        res.pump_power_W,
-        res.CO2_captured_mol_s,
-        res.CO2_out_mol_s,
-        cell,
-        flue.P_bar,
-        tea,
-    )
-    return DesignPoint(NaOH_M=solv.NaOH_M, LG_vol=LG_vol, absorber=res, cell=cell, **costs)

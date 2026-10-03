@@ -6,7 +6,7 @@ Defaults reproduce the legacy base case (thesis notebook, cell 1).
 from typing import Literal
 
 import numpy as np
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class _Frozen(BaseModel):
@@ -68,6 +68,15 @@ class CellSpec(_Frozen):
     tna_mode: Literal["empirical", "const"] = "empirical"
     tna_const: float = Field(0.90, gt=0, le=1)
     CO2_release_eff: float = Field(0.98, gt=0, le=1)
+    optimize_j: bool = Field(False, description="choose j per design point to minimise the LCOC")
+    j_min_mA_cm2: float = Field(50.0, gt=0)
+    j_max_mA_cm2: float = Field(250.0, gt=0, description="t_Na correlation caps j at 250")
+
+    @model_validator(mode="after")
+    def _j_bounds(self):
+        if not self.j_min_mA_cm2 < self.j_max_mA_cm2:
+            raise ValueError("j_min_mA_cm2 must be below j_max_mA_cm2")
+        return self
 
 
 class TEASpec(_Frozen):
@@ -253,6 +262,7 @@ class DesignPoint(_Frozen):
     indirect_kgCO2e_y: float
     indirect_tCO2e_y: float
     indirect_kgCO2e_t: float
+    warnings: tuple[str, ...] = ()
 
 
 class OptimizationResult(_Frozen):
