@@ -11,6 +11,9 @@ from .models import AbsorberDesign, AbsorberResult, AbsorberSpec, FlueGas, Solve
 
 logger = logging.getLogger(__name__)
 
+# Carbonate route CO2 + 2 OH- -> CO3-- + H2O, the only absorption route modelled.
+OH_PER_CO2_CARBONATE = 2.0
+
 
 def ntu_increment(
     KGa_1_s: float, c_tot_mol_m3: float, G_flux_mol_m2_s: float, dz_m: float
@@ -95,8 +98,7 @@ def simulate_absorber(
     G_flux = G_mol_s / A_col
     logger.debug("KGa_in=%.3f 1/s | G''=%.3e mol/m2/s", KGa, G_flux)
 
-    # Carbonate route CO2 + 2 OH- -> CO3-- + H2O: each mol of CO2 consumes 2 mol of OH-.
-    OH_PER_CO2 = 2.0
+    OH_PER_CO2 = OH_PER_CO2_CARBONATE
     capacity_mol_s = OH_mol_m3 * Ql_m3_s / OH_PER_CO2
     kG, kL, a_eff, Dl = props0["kG"], props0["kL"], props0["a_eff"], props0["Dl"]
     ntu_per_KGa_m = c_tot / G_flux  # dNTU = KGa · c_tot · dz / G''
@@ -330,6 +332,7 @@ def simulate_absorber(
         E_profile=tuple(prof["E"]),
         KGa_profile_1_s=tuple(prof["KGa"]),
         OH_capacity_CO2_mol_s=capacity_mol_s,
+        OH_per_CO2=OH_PER_CO2,
         solvent_exhausted=exhausted,
         warnings=tuple(warnings),
     )

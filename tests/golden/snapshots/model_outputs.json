@@ -1,5 +1,5 @@
 {
-  "errata_id": "E-007",
+  "errata_id": "E-008",
   "outputs": {
     "base_case": {
       "LG_vol": 0.06,
@@ -17,19 +17,19 @@
       "pump_power_W": 931511.4053209093,
       "CO2_captured_mol_s": 412.3576118403758,
       "feasible": false,
-      "A_cell_m2": 23145.005666009925,
-      "P_cell_W": 65807989.04986282,
-      "P_total_W": 67045943.790145524,
-      "E_cell_kWh_t": 1007.2812150933092,
-      "LCOC_usd_t": 128.27419896478168,
-      "capex_total_usd": 14029497.451611426
+      "A_cell_m2": 46290.01133201985,
+      "P_cell_W": 131615978.09972563,
+      "P_total_W": 132853932.84000833,
+      "E_cell_kWh_t": 2014.5624301866185,
+      "LCOC_usd_t": 252.07653037153523,
+      "capex_total_usd": 23750399.831335593
     },
     "optimisation_coarse": {
       "NaOH_M": 1.1153846153846154,
       "LG_vol": 0.07,
-      "LCOC_usd_t": 128.78306150202587,
-      "capex_total_usd": 14159356.146092642,
-      "opex_total_usd_y": 66124889.685780495,
+      "LCOC_usd_t": 252.84711224398256,
+      "capex_total_usd": 23970060.54384521,
+      "opex_total_usd_y": 130276606.2759396,
       "height_m": 30.0,
       "D_col_m": 4.1963006355670895,
       "capture_achieved": 0.8935951980076994,
@@ -38,22 +38,22 @@
     "optimisation_fine": {
       "NaOH_M": 1.1487179487179486,
       "LG_vol": 0.08,
-      "LCOC_usd_t": 129.0270935527025,
-      "capex_total_usd": 14194836.834375957,
-      "opex_total_usd_y": 66333083.970478654,
+      "LCOC_usd_t": 253.0494683902987,
+      "capex_total_usd": 24014362.49086941,
+      "opex_total_usd_y": 130542482.34043363,
       "height_m": 30.0,
       "D_col_m": 4.1954779068093195,
       "capture_achieved": 0.8946992204266296,
       "feasible": false
     },
     "optimisation_structured_250Y": {
-      "NaOH_M": 1.6371794871794871,
-      "LG_vol": 0.016690526315789475,
-      "LCOC_usd_t": 126.44954949359179,
-      "capex_total_usd": 13739798.760646671,
-      "opex_total_usd_y": 65422934.77888131,
-      "height_m": 22.520640707975925,
-      "D_col_m": 4.79800299743933,
+      "NaOH_M": 1.7923076923076922,
+      "LG_vol": 0.014585263157894737,
+      "LCOC_usd_t": 250.1880721932707,
+      "capex_total_usd": 23711656.109906983,
+      "opex_total_usd_y": 129851208.74079005,
+      "height_m": 23.27319203301526,
+      "D_col_m": 4.793685856332887,
       "capture_achieved": 0.9,
       "feasible": true,
       "n_feasible_coarse": 223
