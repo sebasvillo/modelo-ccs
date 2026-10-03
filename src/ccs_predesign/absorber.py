@@ -3,6 +3,8 @@
 import logging
 import math
 
+from scipy import optimize
+
 from . import gas, kinetics, packing, solvent
 from .constants import G_m_s2, MW_kg_mol, R_J_molK
 from .models import AbsorberDesign, AbsorberResult, AbsorberSpec, FlueGas, Solvent
@@ -35,9 +37,10 @@ def simulate_absorber(
     The diameter comes from spec.flood_fraction of the flooding velocity, unless
     D_col_fixed_m is given (legacy cell 4 variant, used for the bench column).
 
-    Ha, E and KGa follow the local OH- concentration and absorption stops at the
-    stoichiometric OH- capacity (audit §4, errata E-004).
-    LEGACY(audit §5): lean solvent (x = 0) imposed at the gas inlet, i.e. co-current.
+    Counter-current (audit §5, errata E-007): gas enters at z = 0, fresh solvent at the top.
+    Design mode integrates up from the rich end until the target is met; if it is not met
+    within max_height_m, the column is rated at that height by shooting on the gas outlet.
+    Ha, E, KGa and y* follow the local liquid composition (audit §4, errata E-004/E-006).
     """
     pk = packing.PACKINGS[spec.packing_name]
     T_K = gas.c_to_k(flue.T_C)
@@ -92,71 +95,157 @@ def simulate_absorber(
     G_flux = G_mol_s / A_col
     logger.debug("KGa_in=%.3f 1/s | G''=%.3e mol/m2/s", KGa, G_flux)
 
-    def local_KGa(OH: float) -> tuple[float, float, float]:
-        """Ha, E and KGa with the local hydroxide concentration (audit §4, errata E-004)."""
-        Ha_loc = kinetics.hatta_number(k2 * OH, props0["Dl"], props0["kL"])
-        E_loc = kinetics.enhancement_factor(Ha_loc)
-        KG = 1.0 / (1.0 / max(props0["kG"], 1e-12) + H_cc / max(props0["kL"] * E_loc, 1e-12))
-        return Ha_loc, E_loc, KG * props0["a_eff"]
-
     # Carbonate route CO2 + 2 OH- -> CO3-- + H2O: each mol of CO2 consumes 2 mol of OH-.
     OH_PER_CO2 = 2.0
-    OH_in_mol_s = OH_mol_m3 * Ql_m3_s
-    capacity_mol_s = OH_in_mol_s / OH_PER_CO2
+    capacity_mol_s = OH_mol_m3 * Ql_m3_s / OH_PER_CO2
+    kG, kL, a_eff, Dl = props0["kG"], props0["kL"], props0["a_eff"], props0["Dl"]
+    ntu_per_KGa_m = c_tot / G_flux  # dNTU = KGa · c_tot · dz / G''
+    K1, K2, Kw = solvent.carbonate_constants(T_K)
+    ystar_coeff = H_cc * 1000.0 * Kw**2 / (K1 * K2 * c_tot)  # y* = coeff·[CO3]_M/[OH]_M²
 
-    z_vals, y_vals, x_vals = [0.0], [y_in], [0.0]
-    ystar_vals, rate_vals = [0.0], [0.0]
-    OH_vals, Ha_vals, E_vals, KGa_vals = [OH_mol_m3], [Ha], [E], [KGa]
-    y, x, z, OH, ntu_total = y_in, 0.0, 0.0, OH_mol_m3, 0.0
-    reached = exhausted = False
-    KGa_loc = KGa
-    while z < spec.max_height_m:
-        # explicit step: chemistry evaluated at the start of the slice (node values)
-        step = ntu_increment(KGa_loc, c_tot, G_flux, spec.dz_m)
-        CO3 = (OH_mol_m3 - OH) / OH_PER_CO2  # fresh solvent carries no carbonate
-        y_star = min(H_cc * solvent.free_CO2_equilibrium_mol_m3(T_K, OH, CO3) / c_tot, y)
-        driving0 = max(y - y_star, 0.0)
-        y_new = max(y_star + (y - y_star) * math.exp(-step), 0.0)
-        dn_mol_s = G_mol_s * (y - y_new)
-        available_mol_s = OH * Ql_m3_s / OH_PER_CO2
-        if dn_mol_s >= available_mol_s:  # stoichiometric limit: solvent exhausted
-            dn_mol_s = available_mol_s
-            y_new = y - dn_mol_s / G_mol_s
-            exhausted = True
-        OH = 0.0 if exhausted else OH - OH_PER_CO2 * dn_mol_s / Ql_m3_s
-        x = x + dn_mol_s / max(L_mol_s, 1e-12)
-        y = y_new
-        z += spec.dz_m
-        ntu_total += step
+    def node(y: float, y_top: float) -> tuple[float, float, float, float, float]:
+        """Local liquid state and rates at a height where the gas mole fraction is y.
 
-        z_vals.append(z)
-        y_vals.append(y)
-        x_vals.append(x)
-        CO3 = (OH_mol_m3 - OH) / OH_PER_CO2
-        ystar_vals.append(min(H_cc * solvent.free_CO2_equilibrium_mol_m3(T_K, OH, CO3) / c_tot, y))
-        rate_vals.append(KGa_loc * driving0)
-        Ha_loc, E_loc, KGa_loc = local_KGa(OH)
-        OH_vals.append(OH)
-        Ha_vals.append(Ha_loc)
-        E_vals.append(E_loc)
-        KGa_vals.append(KGa_loc)
+        Counter-current balance over the section above: the liquid has absorbed
+        G·(y − y_top) since entering fresh at the top (audit §5, errata E-007).
+        """
+        OH = OH_mol_m3 - OH_PER_CO2 * G_mol_s * (y - y_top) / Ql_m3_s
+        if OH <= 0.0:  # no hydroxide left: no reaction and no driving force
+            KG = 1.0 / (1.0 / kG + H_cc / kL)
+            return OH, 0.0, 1.0, KG * a_eff, y
+        Ha_loc = kinetics.hatta_number(k2 * OH, Dl, kL)
+        E_loc = kinetics.enhancement_factor(Ha_loc)
+        KG = 1.0 / (1.0 / max(kG, 1e-12) + H_cc / max(kL * E_loc, 1e-12))
+        CO3_M = (OH_mol_m3 - OH) / OH_PER_CO2 / 1000.0
+        y_star = min(ystar_coeff * CO3_M / (OH / 1000.0) ** 2, y)
+        return OH, Ha_loc, E_loc, KG * a_eff, y_star
 
-        if y <= y_out_target:
-            reached = True
-            break
-        if exhausted:
-            break
+    def pinch_gap(y: float, y_top: float) -> float:
+        """y*(liquid in contact with gas y) − y; it crosses zero at a rich-end pinch."""
+        OH = OH_mol_m3 - OH_PER_CO2 * G_mol_s * (y - y_top) / Ql_m3_s
+        CO3_M = (OH_mol_m3 - OH) / OH_PER_CO2 / 1000.0
+        return ystar_coeff * CO3_M / (OH / 1000.0) ** 2 - y
+
+    def march(y_top: float, z_end: float, y_stop: float | None = None, keep: bool = False):
+        """Integrate upward from the gas inlet (z = 0) with explicit exponential steps.
+
+        With y_stop (design mode) the last slice is cut exactly where y = y_stop (audit §11);
+        otherwise the march ends exactly at z_end (rating mode).
+        """
+        y, z, ntu, reached = y_in, 0.0, 0.0, False
+        prof: dict[str, list[float]] = {
+            k: [] for k in ("z", "y", "OH", "Ha", "E", "KGa", "ys", "r")
+        }
+        while z < z_end - 1e-12:
+            OH, Ha_loc, E_loc, KGa_loc, y_star = node(y, y_top)
+            if keep:
+                for k, v in zip(
+                    prof,
+                    (z, y, OH, Ha_loc, E_loc, KGa_loc, y_star, KGa_loc * (y - y_star)),
+                    strict=True,
+                ):
+                    prof[k].append(v)
+            k_m = KGa_loc * ntu_per_KGa_m  # transfer units per metre
+            h = min(spec.dz_m, z_end - z)
+            y_new = y_star + (y - y_star) * math.exp(-k_m * h)
+            if y_stop is not None and y_new <= y_stop:
+                h = math.log((y - y_star) / (y_stop - y_star)) / k_m
+                y_new, reached = y_stop, True
+            y, z, ntu = y_new, z + h, ntu + k_m * h
+            if reached:
+                break
+        if keep:
+            OH, Ha_loc, E_loc, KGa_loc, y_star = node(y, y_top)
+            for k, v in zip(
+                prof,
+                (z, y, OH, Ha_loc, E_loc, KGa_loc, y_star, KGa_loc * (y - y_star)),
+                strict=True,
+            ):
+                prof[k].append(v)
+        return y, z, ntu, reached, prof
+
+    def march_down(y_top: float, height: float, keep: bool = False):
+        """Rating mode: integrate down from the lean end (fresh solvent, gas outlet y_top).
+
+        Going down, y_(z−h) = y* + (y − y*)·exp(+k·h). Well-conditioned near a rich-end pinch,
+        which an upward march would start inside of.
+        """
+        y, z, ntu = y_top, height, 0.0
+        prof: dict[str, list[float]] = {
+            k: [] for k in ("z", "y", "OH", "Ha", "E", "KGa", "ys", "r")
+        }
+        while z > 1e-12:
+            OH, Ha_loc, E_loc, KGa_loc, y_star = node(y, y_top)
+            if keep:
+                for k, v in zip(
+                    prof,
+                    (z, y, OH, Ha_loc, E_loc, KGa_loc, y_star, KGa_loc * (y - y_star)),
+                    strict=True,
+                ):
+                    prof[k].append(v)
+            k_m = KGa_loc * ntu_per_KGa_m
+            h = min(spec.dz_m, z)
+            y_new = y_star + (y - y_star) * math.exp(k_m * h)
+            y_dry = y_top + OH_mol_m3 * Ql_m3_s / (OH_PER_CO2 * G_mol_s) * (1.0 - 1e-12)
+            y_hi = min(y_new, y_dry)  # gas level at which the liquid would hold no OH- left
+            if pinch_gap(y, y_top) >= 0.0:  # already sitting on the pinch: no driving force
+                y_new = y
+            elif y_hi < y_new or pinch_gap(y_hi, y_top) > 0.0:
+                # the explicit step crossed the equilibrium pinch: stop exactly on it
+                y_new = optimize.brentq(pinch_gap, y, y_hi, args=(y_top,), xtol=1e-15, rtol=1e-13)
+            y = y_new
+            z, ntu = z - h, ntu + k_m * h
+        if keep:
+            OH, Ha_loc, E_loc, KGa_loc, y_star = node(y, y_top)
+            for k, v in zip(
+                prof,
+                (0.0, y, OH, Ha_loc, E_loc, KGa_loc, y_star, KGa_loc * (y - y_star)),
+                strict=True,
+            ):
+                prof[k].append(v)
+            prof = {k: v[::-1] for k, v in prof.items()}
+        return y, ntu, prof
+
+    OH_bottom_design = OH_mol_m3 - OH_PER_CO2 * G_mol_s * (y_in - y_out_target) / Ql_m3_s
+    reached = False
+    if OH_bottom_design > 0.0 and node(y_in, y_out_target)[4] < y_in:
+        y_end, z_end, ntu_total, reached, prof = march(
+            y_out_target, spec.max_height_m, y_stop=y_out_target, keep=True
+        )
+    if reached:
+        y_out = y_out_target
+    else:
+        # rating at the maximum height: shoot on the gas outlet so that the gas reaching the
+        # bottom equals the feed (the solvent enters fresh at the top by construction)
+        y_lo = max(y_in - capacity_mol_s / G_mol_s, 0.0)
+        H = spec.max_height_m
+
+        def residual(y_top: float) -> float:
+            return march_down(y_top, H)[0] - y_in
+
+        y_out = (
+            y_lo
+            if residual(y_lo) >= 0.0
+            else optimize.brentq(residual, y_lo, y_in, xtol=1e-15, rtol=1e-13)
+        )
+        _, ntu_total, prof = march_down(y_out, H, keep=True)
+        z_end = H
+
+    z_vals, y_vals = prof["z"], prof["y"]
+    OH_vals = prof["OH"]
+    x_vals = [G_mol_s * (yv - y_out) / max(L_mol_s, 1e-12) for yv in y_vals]
+    exhausted = OH_vals[0] <= 0.01 * OH_mol_m3
 
     warnings = []
     if exhausted:
         warnings.append(
-            f"solvent exhausted at z = {z:.2f} m: OH- capacity {capacity_mol_s:.4g} mol/s CO2 "
+            f"rich solvent leaves with {max(OH_vals[0], 0.0) / OH_mol_m3:.1%} of the inlet OH- "
             "(carbonate route, 2 OH- per CO2); the slow bicarbonate route is not modelled"
         )
-    if not reached and not exhausted:
+    if not reached:
         warnings.append(
             f"capture target not reached within max_height_m = {spec.max_height_m:g} m "
-            f"(capture {(y_in - y) / y_in:.1%})"
+            f"(capture {(y_in - y_out) / y_in:.1%})"
         )
     if capacity_mol_s < G_mol_s * (y_in - y_out_target):
         warnings.append(
@@ -164,8 +253,7 @@ def simulate_absorber(
             f"target ({G_mol_s * (y_in - y_out_target):.4g} mol/s): raise L/G or NaOH"
         )
 
-    height_m = z_vals[-1]
-    y_out = y_vals[-1]
+    height_m = z_end
 
     dpdz = packing.pressure_drop_ergun_Pa_m(props["rho_g"], props["mu_g"], uG, pk)
     deltaP = dpdz * height_m
@@ -235,12 +323,12 @@ def simulate_absorber(
         z_m=tuple(z_vals),
         yCO2=tuple(y_vals),
         x_loading=tuple(x_vals),
-        y_star=tuple(ystar_vals),
-        rate_indicator=tuple(rate_vals),
+        y_star=tuple(prof["ys"]),
+        rate_indicator=tuple(prof["r"]),
         OH_mol_m3=tuple(OH_vals),
-        Ha_profile=tuple(Ha_vals),
-        E_profile=tuple(E_vals),
-        KGa_profile_1_s=tuple(KGa_vals),
+        Ha_profile=tuple(prof["Ha"]),
+        E_profile=tuple(prof["E"]),
+        KGa_profile_1_s=tuple(prof["KGa"]),
         OH_capacity_CO2_mol_s=capacity_mol_s,
         solvent_exhausted=exhausted,
         warnings=tuple(warnings),

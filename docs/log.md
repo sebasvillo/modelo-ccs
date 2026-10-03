@@ -26,3 +26,8 @@ Three lines per working session: what was done, what was found, what comes next.
 - E-003 (#7): Henry constant (Sander 2015) with Weisenberger–Schumpe salting-out replaces the 0.001 factor; column now liquid-film controlled, KGa ≈ 0.3 1/s, rate peaks near 1.5 M NaOH.
 - E-004 (#8): local OH⁻ balance, local Ha/E/KGa and a hard stoichiometric limit with warnings; E-005 (#9): optimiser ranks only designs that reach the target.
 - Result: pall ring 25 mm cannot reach 90 % in 30 m; structured 250Y optimum 1.79 M, H 25.1 m, LCOC 126.7 USD/t. Next: §5 counter-current BVP and a physical y* (session 6).
+
+## 2026-10-03 · Session 6 · Equilibrium y* and counter-current column (audit §4, §5, §11)
+- E-006 (#10): y* from carbonate speciation (Plummer & Busenberg 1982, Harned & Owen) replaces the tunable H_eq slope; y* ≈ 1e-10 with excess OH⁻.
+- E-007 (#11): counter-current column; design mode marches up from the rich end to the exact target height, rating mode shoots on the outlet marching down from the lean end with exact pinch handling (scipy brentq).
+- Structured 250Y optimum now H 22.5 m, LCOC 126.4 USD/t; pall ring still infeasible at 30 m (88.7 %). Next: §6 cell electrons per CO2 (session 7).
