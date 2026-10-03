@@ -36,7 +36,7 @@ docs/audit-2026-09.md  # code audit of the legacy notebook
 docs/errata.md    # every numerical change vs the thesis, with the reason
 docs/log.md       # 3-line summary per working session
 ```
-Status: cell 1 of the legacy notebook (absorber + L/G scan + cell sizing) lives in `constants.py`, `gas.py`, `solvent.py`, `kinetics.py`, `packing.py`, `absorber.py`, `cell.py`, `models.py` and `pipeline.py` (`run_case(CaseInput)`), bit-for-bit equal to the legacy functions (`tests/golden/test_cell1_equivalence.py`). Legacy bugs are kept on purpose and tagged `LEGACY(audit §n)` in the code; each one is removed only by a physics PR with an errata entry. TEA (`tea.py`: cell 8 `evaluate_design_point`, cell 2 `tea_summary`), optimiser (`optimize.py`: cells 10/12 two-stage grid) and the fixed-diameter bench variant (cell 17) are ported too, checked bit-for-bit in `tests/golden/test_tea_equivalence.py` (notebook state replayed, so the 300 000 Nm3/h bug is included). Cell 4's optimiser is dead code (only driven by failing cell 6) and was not ported.
+Status: cell 1 of the legacy notebook (absorber + L/G scan + cell sizing) lives in `constants.py`, `gas.py`, `solvent.py`, `kinetics.py`, `packing.py`, `absorber.py`, `cell.py`, `models.py` and `pipeline.py` (`run_case(CaseInput)`), ported bit-for-bit in phase 1. Remaining legacy bugs are tagged `LEGACY(audit §n)` in the code; each one is removed only by a physics PR with an errata entry. Fixed so far: §1 (E-001). TEA (`tea.py`: cell 8 `evaluate_design_point`, cell 2 `tea_summary`), optimiser (`optimize.py`: cells 10/12 two-stage grid) and the fixed-diameter bench variant (cell 17) are ported too, ported bit-for-bit in phase 1. Cell 4's optimiser is dead code (only driven by failing cell 6) and was not ported.
 
 ## Hard rules
 1. **Physics lives only in `src/ccs_predesign`.** API and frontend never compute physics.
@@ -66,7 +66,7 @@ Details in `docs/audit-2026-09.md`.
 1. `test_legacy_notebook.py` (slow): replays the frozen notebook with nbclient and compares its stdout with the saved outputs. Always green; it only tests the legacy file. All cells reproduce byte-for-byte except cell 2 (stale kernel state in the saved run: LCOC 123.20 saved vs 123.17 clean; strict xfail, audit §7). Cell 6 raises `KeyError: 'T_gas_abs_C'` in the saved run too.
 2. `test_components_equivalence.py`: every ported function equals its legacy twin bit-for-bit (properties, correlations, cell, TEA costing, scores). When a physics PR changes a function, replace its test here by one tied to the errata entry.
 3. `test_snapshot.py` + `snapshots/model_outputs.json`: headline outputs (base case, optimisation, bench) at rel. tol. 1e-9, tied to the latest id in `docs/errata.md`. A physics PR adds the errata row, then regenerates with `uv run python tests/golden/snapshot.py E-00N`. Never regenerate without an errata row.
-`test_cell1_equivalence.py` and `test_tea_equivalence.py` prove the phase-1 refactor end-to-end; they are retired (deleted, with a note in the errata) by the first PR that moves absorber numbers.
+The end-to-end refactor proofs (`test_cell1_equivalence.py`, `test_tea_equivalence.py`, PRs #2–#3) were retired by E-001; they live in git history.
 
 ## Validation targets
 - Kinetics vs Pohorecki & Moniuk (1988). kLa vs Ellebracht et al. (2023) NaOH/TPMS data. Bench data: `data/lab2_titration.csv` (12 runs, thesis Table 3.1; to be added).
