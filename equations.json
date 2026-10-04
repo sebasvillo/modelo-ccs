@@ -796,11 +796,91 @@
       "reference": "billet1999",
       "validity": "F_V ≤ 2.77 Pa^0.5; mean deviation 12.4 % (Flagiello 2021)",
       "implemented_by": [
-        "packing:bs_kG_m_s",
-        "packing:gas_side_kG_m_s"
+        "packing:bs_kG_m_s"
       ],
       "errata": [
         "E-016"
+      ]
+    },
+    {
+      "id": "packing.hc_kg",
+      "title_es": "Película gaseosa en empaque estructurado (Hanley & Chen)",
+      "title_en": "Gas film in structured packing (Hanley & Chen)",
+      "latex": "k_G = 0.0084\\,Re_V\\,Sc_V^{1/3}\\left(\\dfrac{\\cos\\theta}{\\cos 45^\\circ}\\right)^{-7.15}\\dfrac{D_G}{d_e},\\qquad Re_V = \\dfrac{d_e\\,u_G\\,\\rho_G}{\\mu_G}",
+      "meaning_es": "Analogía de Chilton–Colburn: el gas en los canales corrugados se comporta como flujo turbulento en un ducto.",
+      "meaning_en": "Chilton–Colburn analogy: gas in the corrugated channels behaves like turbulent duct flow.",
+      "symbols": [
+        "kG",
+        "D_G",
+        "d_h",
+        "u_G",
+        "rho_G",
+        "mu_G"
+      ],
+      "provenance": "literature",
+      "reference": "hanley2012",
+      "validity": "sheet-metal structured packings (Mellapak/Flexipac), d_e = 4ε/a; fitted on distillation and amine absorption, away from flooding",
+      "implemented_by": [
+        "packing:hc_kG_m_s",
+        "packing:gas_side_kG_m_s"
+      ],
+      "errata": [
+        "E-019"
+      ]
+    },
+    {
+      "id": "packing.hc_kl",
+      "title_es": "Película líquida en empaque estructurado (Hanley & Chen)",
+      "title_en": "Liquid film in structured packing (Hanley & Chen)",
+      "latex": "k_L = 0.33\\,Re_L\\,Sc_L^{1/3}\\dfrac{D_{CO_2}}{d_e},\\qquad Re_L = \\dfrac{d_e\\,u_L\\,\\rho_L}{\\mu_L}",
+      "meaning_es": "Película líquida turbulenta sobre las láminas corrugadas.",
+      "meaning_en": "Turbulent liquid film over the corrugated sheets.",
+      "symbols": [
+        "kL",
+        "D_L",
+        "d_h",
+        "u_L",
+        "rho_L",
+        "mu_L"
+      ],
+      "provenance": "literature",
+      "reference": "hanley2012",
+      "validity": null,
+      "implemented_by": [
+        "packing:hc_kL_m_s",
+        "packing:liquid_side"
+      ],
+      "errata": [
+        "E-019"
+      ]
+    },
+    {
+      "id": "packing.hc_area",
+      "title_es": "Área de transferencia en empaque estructurado (Hanley & Chen)",
+      "title_en": "Mass-transfer area in structured packing (Hanley & Chen)",
+      "latex": "\\dfrac{a_e}{a} = 0.539\\,Re_V^{0.145}Re_L^{-0.153}We_L^{0.2}Fr_L^{-0.2}\\left(\\dfrac{\\rho_G}{\\rho_L}\\right)^{-0.033}\\left(\\dfrac{\\mu_G}{\\mu_L}\\right)^{0.090}\\left(\\dfrac{\\cos\\theta}{\\cos 45^\\circ}\\right)^{4.078}",
+      "meaning_es": "Área efectiva de contacto; puede superar el área seca de las láminas por gotas y ondas.",
+      "meaning_en": "Effective contact area; it can exceed the dry sheet area because of drops and ripples.",
+      "symbols": [
+        "a_e",
+        "a",
+        "rho_G",
+        "rho_L",
+        "mu_G",
+        "mu_L",
+        "u_L",
+        "u_G",
+        "sigma"
+      ],
+      "provenance": "literature",
+      "reference": "hanley2012",
+      "validity": "exponents as printed in the original (Flagiello 2021 attributes 4.078 to k_L instead)",
+      "implemented_by": [
+        "packing:hc_area_m2_m3",
+        "packing:liquid_side"
+      ],
+      "errata": [
+        "E-019"
       ]
     },
     {
@@ -2163,6 +2243,10 @@
     "billet1999": {
       "key": "billet1999",
       "citation": "Billet, R., Schultes, M. (1999). Prediction of mass transfer columns with dumped and arranged packings: updated summary of the calculation method of Billet and Schultes. Trans IChemE 77(A), 498–504."
+    },
+    "hanley2012": {
+      "key": "hanley2012",
+      "citation": "Hanley, B., Chen, C.-C. (2012). New mass-transfer correlations for packed towers. AIChE J. 58(1), 132–152. doi:10.1002/aic.12574."
     },
     "flagiello2021": {
       "key": "flagiello2021",

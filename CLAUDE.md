@@ -59,7 +59,7 @@ Details in `docs/audit-2026-09.md`.
 5. Co-current integration presented as counter-current → BVP solver.
 6. Cell assumes 1 e⁻ per CO2 → configurable route (carbonate 2 e⁻ / bicarbonate 1 e⁻).
 7. Isothermal → add energy balance (heat of absorption).
-8. Correlations mislabelled (Sh "Onda", wetting "Onda", Ergun for structured) → Billet–Schultes done (E-016/E-017). Pending: Mellapak-type structured packings (Hanley & Chen) and TPMS packings from Ellebracht et al. 2023 data.
+8. Correlations mislabelled (Sh "Onda", wetting "Onda", Ergun for structured) → Billet–Schultes done (E-016/E-017). Mellapak 250Y via Hanley & Chen 2012 done (E-019). Pending: TPMS packings from Ellebracht et al. 2023 data.
 9. TEA: 8760 vs 8000 h, 22.414 vs 44.615, optimiser ignores infeasible points, current density not optimised.
 
 ## Safety nets (tests/golden/)
