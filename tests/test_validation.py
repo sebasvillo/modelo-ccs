@@ -51,3 +51,26 @@ def test_kinetics_reference_value():
     assert kinetics.k2_pohorecki_moniuk_m3_mol_s(298.15, 0.0) * 1000 == pytest.approx(
         8.05e3, rel=0.01
     )
+
+
+def test_ellebracht_250Y_capture_is_flagged_outside_hanley_chen_range():
+    """Ellebracht et al. (2023) ESI: 74 mm column, 3 × 150 mm of 250Y, v_G 0.105 m/s, v_L 45 m/h,
+    10 % CO2, fresh 0.4 M NaOH, 25 °C → initial capture 67 %. The model gives ≈ 40 % because the
+    Hanley & Chen gas-film correlation falls below Sh = 2 at this tiny gas load; it must say so.
+    """
+    from ccs_predesign.absorber import simulate_absorber
+    from ccs_predesign.models import AbsorberSpec, FlueGas, Solvent
+
+    A = math.pi * 0.074**2 / 4
+    Q_N_h = 0.105 * A * 273.15 / 298.15 * 3600
+    r = simulate_absorber(
+        FlueGas(Q_dry_Nm3_h=Q_N_h, y_CO2_dry=0.10, y_O2_dry=0.0, T_C=25.0, P_bar=1.01325),
+        Solvent(NaOH_M=0.4),
+        AbsorberSpec(
+            packing_name="mellapak_metal_250y", capture_target=0.999, max_height_m=0.45, dz_m=0.005
+        ),
+        (45 / 3600) / 0.105,
+        D_col_fixed_m=0.074,
+    )
+    assert 0.3 < r.capture_achieved < 0.67  # documented under-prediction (docs/validation.md)
+    assert any("too low for Hanley & Chen" in w for w in r.warnings)
