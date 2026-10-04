@@ -792,7 +792,7 @@ SYMBOLS = {
         Symbol(
             key="m_CO2",
             latex="\\dot m_{CO_2}",
-            unit="t/año",
+            unit="t/y",
             es="CO₂ capturado por año",
             en="CO₂ captured per year",
         ),

@@ -183,7 +183,7 @@ def explain_case(inp: CaseInput, result: CaseResult) -> tuple[ExplainedValue, ..
         ev(
             "CO2_captured_t_y",
             k.CO2_captured_t_y,
-            "t/año",
+            "t/y",
             "tea.annual_tonnage",
             n_dot=a.CO2_captured_mol_s,
             h_op=tea.hours_per_year,
