@@ -188,7 +188,7 @@ def explain_case(inp: CaseInput, result: CaseResult) -> tuple[ExplainedValue, ..
             n_dot=a.CO2_captured_mol_s,
             h_op=tea.hours_per_year,
         ),
-        ev("crf_1_y", CRF, "1/año", "tea.crf", i=tea.discount_rate, n=float(tea.project_life_y)),
+        ev("crf_1_y", CRF, "1/y", "tea.crf", i=tea.discount_rate, n=float(tea.project_life_y)),
         ev(
             "cell_capex_usd",
             k.capex_cell_usd,
