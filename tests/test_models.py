@@ -8,7 +8,7 @@ def test_defaults_are_the_legacy_base_case():
     inp = CaseInput()
     assert inp.gas.Q_dry_Nm3_h == 150_000.0
     assert inp.solvent.NaOH_M == 1.5
-    assert inp.absorber.packing_name == "pall_ring_25mm"
+    assert inp.absorber.packing_name == "pall_ring_metal_25mm"
     assert len(inp.absorber.LG_grid_vol) == 28
 
 

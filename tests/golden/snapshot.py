@@ -77,7 +77,7 @@ def compute_snapshot() -> dict:
         TEASpec(),
     )
     coarse, fine = optimize_two_stage(CaseInput())
-    structured = CaseInput(absorber=AbsorberSpec(packing_name="structured_250Y"))
+    structured = CaseInput(absorber=AbsorberSpec(packing_name="ralu_pak_metal_yc250"))
     s_coarse, s_fine = optimize_two_stage(structured)
     bench = []
     for H, C in BENCH_RUNS:
@@ -117,7 +117,7 @@ def compute_snapshot() -> dict:
         },
         "optimisation_coarse": _point(coarse.best) | {"feasible": coarse.feasible},
         "optimisation_fine": _point(fine.best) | {"feasible": fine.feasible},
-        "optimisation_structured_250Y": _point(s_fine.best)
+        "optimisation_structured_ralu_pak_yc250": _point(s_fine.best)
         | {"feasible": s_fine.feasible, "n_feasible_coarse": s_coarse.n_feasible},
         "bench": bench,
     }

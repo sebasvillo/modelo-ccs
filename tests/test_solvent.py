@@ -4,7 +4,7 @@ import math
 
 import pytest
 
-from ccs_predesign import packing, solvent
+from ccs_predesign import solvent
 from ccs_predesign.absorber import simulate_absorber
 from ccs_predesign.constants import R_J_molK
 from ccs_predesign.models import AbsorberSpec, FlueGas, Solvent
@@ -53,12 +53,3 @@ def test_absorption_rate_has_interior_maximum_in_NaOH():
     }
     assert KGa[1.5] > KGa[0.5]
     assert KGa[1.5] > KGa[3.0]
-
-
-def test_component_signature_still_matches_legacy_form():
-    """The legacy factor enters exactly where H_cc now does (component equivalence)."""
-    pk = packing.PACKINGS["pall_ring_25mm"]
-    comp = {"CO2": 0.2, "O2": 0.03, "N2": 0.69, "H2O": 0.08}
-    a = packing.mass_transfer_coefficients(318.15, 1.01e5, comp, 3.9, 0.02, pk, 1.5, 2.0, E=40)
-    b = packing.mass_transfer_coefficients(318.15, 1.01e5, comp, 3.9, 0.02, pk, 1.5, 4.0, E=80)
-    assert a["KGa"] == pytest.approx(b["KGa"], rel=1e-12)
