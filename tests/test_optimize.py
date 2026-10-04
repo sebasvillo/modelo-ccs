@@ -34,7 +34,7 @@ def test_infeasible_points_are_not_scored(structured_points):
 
 
 def test_no_feasible_design_is_flagged():
-    points = evaluate_grid(CaseInput(absorber=AbsorberSpec(max_height_m=2.0)), NAOH, LG)
+    points = evaluate_grid(CaseInput(absorber=AbsorberSpec(max_height_m=0.5)), NAOH, LG)
     result = choose_best(points)
     assert not result.feasible and result.n_feasible == 0
     assert result.best.absorber.capture_achieved == max(p.absorber.capture_achieved for p in points)

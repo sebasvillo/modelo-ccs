@@ -8,9 +8,15 @@ from ccs_predesign.models import CaseInput, Solvent
 from ccs_predesign.pipeline import run_case
 from ccs_predesign.report import explain_case
 
+
+def Y(y):
+    """Solute-free mole ratio (E-018)."""
+    return y / (1 - y)
+
+
 FORMULAS = {
     "height_m": lambda v: v["NTU"] * v["G_flux"] / (v["c_tot"] * v["KGa_mean"]),
-    "capture_fraction": lambda v: (v["y"] - v["y_top"]) / v["y"],
+    "capture_fraction": lambda v: 1 - Y(v["y_top"]) / Y(v["y"]),
     "diameter_m": lambda v: math.sqrt(4.0 * v["Q_G"] / (v["f"] * v["v_flood"]) / math.pi),
     "KGa_inlet_1_s": lambda v: v["a_e"] / (1 / v["kG"] + v["H_cc"] / (v["E"] * v["kL"])),
     "hatta_inlet": lambda v: math.sqrt(v["k2"] * v["OH"] * v["D_L"]) / v["kL"],
@@ -26,9 +32,11 @@ FORMULAS = {
         )
     ),
     "henry_cc_inlet": lambda v: 1 / (v["H_cp"] * v["R"] * v["T"]),
-    "OH_rich_mol_m3": lambda v: v["OH"] - v["nu"] * v["G"] * (v["y"] - v["y_top"]) / v["Q_L"],
+    "OH_rich_mol_m3": lambda v: (
+        v["OH"] - v["nu"] * v["G_I"] * (Y(v["y"]) - Y(v["y_top"])) / v["Q_L"]
+    ),
     "T_rich_K": lambda v: (
-        v["T_L"] + (-v["dH"]) * v["G"] * (v["y"] - v["y_top"]) / (v["m_L"] * v["cp_L"])
+        v["T_L"] + (-v["dH"]) * v["G_I"] * (Y(v["y"]) - Y(v["y_top"])) / (v["m_L"] * v["cp_L"])
     ),
     "pump_power_W": lambda v: v["rho_L"] * v["g"] * (v["H"] + v["H_extra"]) * v["Q_L"] / v["eta"],
     "blower_power_W": lambda v: v["dP"] * v["Q_G"] / v["eta"],

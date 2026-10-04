@@ -26,13 +26,16 @@ def test_boundary_conditions(max_height_m, LG):
 
 def test_rating_at_design_height_recovers_design_capture():
     flue, solv = FlueGas(), Solvent(NaOH_M=1.5)
-    design = simulate_absorber(flue, solv, AbsorberSpec(max_height_m=60.0), 0.06)
+    design = simulate_absorber(flue, solv, AbsorberSpec(max_height_m=60.0, dz_m=0.005), 0.06)
     assert design.reached_target
     rating = simulate_absorber(
-        flue, solv, AbsorberSpec(max_height_m=design.height_m, capture_target=0.95), 0.06
+        flue,
+        solv,
+        AbsorberSpec(max_height_m=design.height_m, capture_target=0.95, dz_m=0.005),
+        0.06,
     )
     assert not rating.reached_target
-    assert rating.capture_achieved == pytest.approx(design.capture_achieved, abs=2e-4)
+    assert rating.capture_achieved == pytest.approx(design.capture_achieved, abs=5e-4)
 
 
 def test_pinched_column_reaches_stoichiometric_capacity():

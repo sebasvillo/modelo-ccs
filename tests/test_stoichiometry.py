@@ -55,6 +55,6 @@ def test_local_chemistry_follows_hydroxide_depletion():
 
 
 def test_unreached_target_is_warned():
-    r = simulate_absorber(FlueGas(), Solvent(NaOH_M=1.5), AbsorberSpec(max_height_m=2.0), 0.06)
+    r = simulate_absorber(FlueGas(), Solvent(NaOH_M=1.5), AbsorberSpec(max_height_m=0.5), 0.06)
     assert not r.reached_target and not r.solvent_exhausted
     assert any("not reached" in w for w in r.warnings)
