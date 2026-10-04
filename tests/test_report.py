@@ -41,6 +41,7 @@ FORMULAS = {
     "cell_energy_J_mol": lambda v: v["n_e"] * v["F"] * v["V"] / v["t_Na"],
     "CO2_captured_t_y": lambda v: v["n_dot"] * 44.01e-6 * 3600 * v["h_op"],
     "crf_1_y": lambda v: v["i"] * (1 + v["i"]) ** v["n"] / ((1 + v["i"]) ** v["n"] - 1),
+    "cell_capex_usd": lambda v: (v["c_stack"] + v["c_bop"]) * v["A_cell"] * (1 + v["f_u"]),
     "LCOC_usd_t": lambda v: (v["CAPEX"] * v["CRF"] + v["OPEX"]) / v["m_CO2"],
     "indirect_kgCO2e_t": lambda v: v["h_op"] * v["W"] * v["EF"] / (1000 * v["m_CO2"]),
 }

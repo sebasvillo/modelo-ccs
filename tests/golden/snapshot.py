@@ -94,12 +94,12 @@ def compute_snapshot() -> dict:
         default_case.gas,
         Solvent(NaOH_M=2.5),
         default_case.absorber,
-        CellSpec(optimize_j=True),
-        TEASpec(cell_capex_usd_m2=4200.0),
+        CellSpec(optimize_j=True, j_max_mA_cm2=1000.0),
+        TEASpec(),
         0.0093,
     )
     return {
-        "current_density_optimum_capex4200": {
+        "current_density_optimum": {
             "j_mA_cm2": j_opt.cell.j_A_m2 / 10.0,
             "V_cell_V": j_opt.cell.V_cell_V,
             "A_cell_m2": j_opt.cell.A_cell_m2,

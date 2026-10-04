@@ -22,10 +22,10 @@ def test_default_keeps_the_thesis_current_density():
 
 def test_interior_optimum_is_a_minimum():
     """Would have caught bug 9: LCOC(j) has an interior optimum the legacy never searched."""
-    tea = TEASpec(cell_capex_usd_m2=4200.0)
-    best = point(CellSpec(optimize_j=True), tea)
+    tea = DEFAULT_TEA  # Zhang et al. (2024) cell costs: interior optimum near 285 mA/cm2
+    best = point(CellSpec(optimize_j=True, j_max_mA_cm2=1000.0), tea)
     j_star = best.cell.j_A_m2 / 10.0
-    assert 50.0 < j_star < 250.0 and best.warnings == ()
+    assert 50.0 < j_star < 1000.0 and best.warnings == ()
     for dj in (-10.0, 10.0):
         other = point(CellSpec(j_mA_cm2=j_star + dj), tea)
         assert other.LCOC_usd_t > best.LCOC_usd_t
@@ -33,7 +33,8 @@ def test_interior_optimum_is_a_minimum():
 
 
 def test_optimum_on_a_bound_is_warned():
-    p = point(CellSpec(optimize_j=True))  # cheap legacy membrane cost: lowest j wins
+    cheap = TEASpec(cell_stack_usd_m2=420.0, cell_bop_usd_m2=0.0)  # legacy cell cost
+    p = point(CellSpec(optimize_j=True), cheap)  # cheap membrane: lowest j wins
     assert p.cell.j_A_m2 / 10.0 == pytest.approx(50.0, abs=0.5)
     assert any("search bound" in w for w in p.warnings)
 
