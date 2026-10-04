@@ -26,3 +26,8 @@ carbonate into a capture rate as [CO3]·Q_L, i.e. a single pass of liquid. That 
 the CO2 fed (run 2), so the solvent was most likely recirculated; the run duration and the
 reservoir volume are needed to recover the true capture. The capture percentages typed in
 rows 4–14 of the workbook are therefore not used here.
+
+**Decision (2026-10-04, author):** the solvent was *not* recirculated, so the single-pass
+interpretation stands and the titrations are inconsistent (captured CO2 above the CO2 fed). These
+runs are kept as a record only and are **not** used to validate or calibrate the model; validation
+relies on independent literature data (`docs/validation.md`).
