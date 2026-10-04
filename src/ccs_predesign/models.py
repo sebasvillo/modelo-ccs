@@ -62,7 +62,10 @@ class AbsorberSpec(_Frozen):
     )
     max_height_m: float = Field(30.0, gt=0, le=100.0)
     max_diameter_m: float | None = Field(
-        None, gt=0, description="per column; larger duties are split into parallel trains"
+        8.0,
+        gt=0,
+        description="per column, Hossain et al. 2026 (fabrication, transport, site); larger "
+        "duties are split into identical parallel trains; None = no limit",
     )
     dz_m: float = Field(0.02, ge=0.005, le=1.0, description="integration step")
     flood_fraction: float = Field(0.60, gt=0, lt=1)

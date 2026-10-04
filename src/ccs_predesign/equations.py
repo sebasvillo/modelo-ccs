@@ -133,6 +133,10 @@ REFERENCES = {
             citation="Billet, R., Schultes, M. (1999). Prediction of mass transfer columns with dumped and arranged packings: updated summary of the calculation method of Billet and Schultes. Trans IChemE 77(A), 498–504.",
         ),
         Reference(
+            key="hossain2026",
+            citation="Hossain, M. S., Barker, R., Cockerill, T., Thompson, H. (2026). Techno-economic and environmental optimization of structured-packing absorbers for amine-based post-combustion CO2 capture. Carbon Capture Science & Technology 18, 100560. doi:10.1016/j.ccst.2025.100560.",
+        ),
+        Reference(
             key="hanley2012",
             citation="Hanley, B., Chen, C.-C. (2012). New mass-transfer correlations for packed towers. AIChE J. 58(1), 132–152. doi:10.1002/aic.12574.",
         ),
@@ -1179,9 +1183,11 @@ EQUATIONS = {
             meaning_es="El gas debe pasar a una fracción f de la velocidad de inundación; si una sola torre supera el diámetro máximo, se reparte en n trenes iguales.",
             meaning_en="The gas must flow at a fraction f of the flooding velocity; if one column would exceed the maximum diameter, the duty is split into n identical trains.",
             symbols=("A_col", "Q_G", "f", "v_flood", "D_col", "n_trains"),
-            provenance="theory",
+            provenance="literature",
+            reference="hossain2026",
+            validity="D_max = 8 m per column (fabrication, transport and site constraints)",
             implemented_by=("packing:column_diameter_m",),
-            errata=("E-017",),
+            errata=("E-017", "E-020"),
         ),
         # ------------------------------------------------------------- absorber
         _E(
