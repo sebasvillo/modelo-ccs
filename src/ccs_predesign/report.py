@@ -9,8 +9,21 @@ from importlib.metadata import version
 
 from . import ERRATA_ID, kinetics, solvent
 from .constants import FARADAY_C_mol, G_m_s2, R_J_molK
-from .models import CaseInput, CaseResponse, CaseResult, ExplainedValue, Profiles
-from .tea import crf
+from .models import (
+    CaseInput,
+    CaseResponse,
+    CaseResult,
+    CaseSummary,
+    CostShare,
+    ExplainedValue,
+    Profiles,
+    SensitivityPoint,
+)
+from .tea import crf, design_costs
+
+# Electricity prices for the sensitivity curve [USD/kWh]: from very cheap renewables to
+# expensive grid power. Colombia's 2024 solar auction cleared near 0.018 USD/kWh.
+ELECTRICITY_PRICES_USD_KWH = (0.0, 0.0182, 0.03, 0.05, 0.075, 0.10, 0.12, 0.15, 0.20)
 
 
 def explain_case(inp: CaseInput, result: CaseResult) -> tuple[ExplainedValue, ...]:
@@ -209,8 +222,40 @@ def explain_case(inp: CaseInput, result: CaseResult) -> tuple[ExplainedValue, ..
     )
 
 
+def lcoc_breakdown(inp: CaseInput, result: CaseResult) -> tuple[CostShare, ...]:
+    """LCOC split by cost item [USD/t]; the shares add up to the LCOC (Equations: tea.lcoc)."""
+    k, tea = result.costs, inp.tea
+    CRF = crf(tea.discount_rate, tea.project_life_y)
+    t = k.CO2_captured_t_y
+    items = [
+        ("capex_cell", k.capex_cell_usd * CRF),
+        ("capex_absorber", (k.capex_total_usd - k.capex_cell_usd) * CRF),
+        ("electricity", k.opex_electricity_usd_y),
+        ("stack_replacement", k.opex_stack_replacement_usd_y),
+        ("cell_om", k.opex_cell_om_usd_y),
+        ("fixed_om", k.opex_fixed_usd_y),
+        ("chemicals", k.opex_solvent_usd_y + k.opex_water_chem_usd_y + k.opex_h2_loss_usd_y),
+    ]
+    return tuple(CostShare(key=key, usd_t=usd_y / t) for key, usd_y in items)
+
+
+def lcoc_vs_electricity(inp: CaseInput, result: CaseResult) -> tuple[SensitivityPoint, ...]:
+    """LCOC of the same design at other electricity prices (costing only; Equations: tea.lcoc)."""
+    a = result.absorber.best
+    points = []
+    for price in ELECTRICITY_PRICES_USD_KWH:
+        tea = inp.tea.model_copy(update={"electricity_usd_kWh": price})
+        costs = design_costs(
+            a.D_col_m, a.height_m, a.blower_power_W, a.pump_power_W, a.CO2_captured_mol_s,
+            a.CO2_out_mol_s, result.cell, inp.gas.P_bar, tea, a.n_trains,
+        )  # fmt: skip
+        points.append(SensitivityPoint(electricity_usd_kWh=price, LCOC_usd_t=costs["LCOC_usd_t"]))
+    return tuple(points)
+
+
 def case_response(inp: CaseInput, result: CaseResult) -> CaseResponse:
     a = result.absorber.best
+    k = result.costs
     warnings = a.warnings + (
         () if result.absorber.feasible else ("no feasible design in the L/G scan",)
     )
@@ -219,6 +264,27 @@ def case_response(inp: CaseInput, result: CaseResult) -> CaseResponse:
         errata_id=ERRATA_ID,
         feasible=result.absorber.feasible,
         warnings=warnings,
+        summary=CaseSummary(
+            packing_name=a.packing_name,
+            NaOH_M=inp.solvent.NaOH_M,
+            LG_vol=a.LG_vol,
+            n_trains=a.n_trains,
+            D_col_m=a.D_col_m,
+            height_m=a.height_m,
+            capture_fraction=a.capture_achieved,
+            CO2_captured_t_y=k.CO2_captured_t_y,
+            indirect_tCO2e_y=k.indirect_tCO2e_y,
+            net_captured_t_y=k.CO2_captured_t_y - k.indirect_tCO2e_y,
+            E_total_kWh_t=k.E_total_kWh_t,
+            A_cell_m2=result.cell.A_cell_m2,
+            P_total_MW=k.P_total_W / 1e6,
+            T_rich_C=a.T_liquid_K[0] - 273.15,
+            LCOC_usd_t=k.LCOC_usd_t,
+            capex_total_usd=k.capex_total_usd,
+            opex_total_usd_y=k.opex_total_usd_y,
+        ),
+        lcoc_breakdown=lcoc_breakdown(inp, result),
+        lcoc_vs_electricity=lcoc_vs_electricity(inp, result),
         outputs=explain_case(inp, result),
         profiles=Profiles(
             z_m=a.z_m,
