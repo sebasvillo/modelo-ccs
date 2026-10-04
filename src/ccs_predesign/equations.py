@@ -1302,7 +1302,11 @@ EQUATIONS = {
             provenance="literature",
             reference="hanley2012",
             validity="sheet-metal structured packings (Mellapak/Flexipac), d_e = 4ε/a; fitted on distillation and amine absorption, away from flooding",
-            implemented_by=("packing:hc_kG_m_s", "packing:gas_side_kG_m_s"),
+            implemented_by=(
+                "packing:hc_kG_m_s",
+                "packing:gas_side_kG_m_s",
+                "packing:hc_sherwood_gas",
+            ),
             errata=("E-019",),
         ),
         _E(

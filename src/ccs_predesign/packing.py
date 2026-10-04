@@ -316,6 +316,16 @@ def hc_kG_m_s(uG_m_s: float, rho_g: float, mu_g: float, D_g: float, packing: Pac
     return p["A_V"] * Re * Sc ** (1 / 3) * _hc_angle(packing, p["angle_exp_V"]) * D_g / d_e
 
 
+def hc_sherwood_gas(
+    uG_m_s: float, rho_g: float, mu_g: float, D_g: float, packing: Packing
+) -> float:
+    """Gas-side Sherwood number of Hanley & Chen; below 2 the linear-in-Re form is extrapolated
+    under the stagnant-diffusion limit, outside their (intermediate-load) data. Equations:
+    packing.hc_kg.
+    """
+    return hc_kG_m_s(uG_m_s, rho_g, mu_g, D_g, packing) * hydraulic_diameter_m(packing) / D_g
+
+
 def hc_kL_m_s(uL_m_s: float, rho_l: float, mu_l: float, D_l: float, packing: Packing) -> float:
     """k_L = 0.33·Re_L·Sc_L^(1/3)·D_L/d_e (Hanley & Chen eq. 70). Equations: packing.hc_kl."""
     d_e = hydraulic_diameter_m(packing)

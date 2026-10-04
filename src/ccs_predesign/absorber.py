@@ -269,6 +269,14 @@ def simulate_absorber(
             f"gas velocity {uG:.2f} m/s above the loading point ({v_loading:.2f} m/s): mass "
             "transfer uses below-loading equations (Billet & Schultes eqs. 14–16 not applied)"
         )
+    if model == "hanley_chen":
+        D_g = gas.diffusivity_CO2_in_air_m2_s(T_K, P_Pa)
+        Sh_V = packing.hc_sherwood_gas(uG, rho_g, mu_g, D_g, pk)
+        if Sh_V < 2.0:
+            warnings_pre.append(
+                f"gas load too low for Hanley & Chen: Sh_V = {Sh_V:.2f} < 2 (stagnant-diffusion "
+                "limit); k_G is extrapolated outside their data and likely underestimated"
+            )
     if model == "billet_schultes":
         ul_lo, ul_hi = packing.BS_MASS_TRANSFER_UL_RANGE_m3_m2h
         if F_factor > packing.BS_MASS_TRANSFER_F_MAX or not ul_lo <= uL_m3_m2h <= ul_hi:
