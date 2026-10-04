@@ -8,18 +8,18 @@ Open-source pre-design tool for point-source CO2 capture:
 
 It grows out of the undergraduate thesis *Herramientas de Diseño para Captura de Carbono por
 Absorción en Sectores Difíciles de Abatir* (Sebastián Villota, Universidad de los Andes, 2026;
-advisors A. González Mancera and R. Sierra Ramírez).
+advisors A. González Mancera and R. Sierra Ramírez). Full text in the Uniandes repository:
+<https://hdl.handle.net/1992/79873>.
 
-> **Status: phase 0 (frozen legacy + golden master).** Results are pre-feasibility estimates
-> (AACE Class 5), never investment-grade. The legacy notebook has known issues listed in
-> [`docs/audit-2026-09.md`](docs/audit-2026-09.md); its numbers are not reliable and are kept
-> only as a refactoring safety net.
+> Results are pre-feasibility estimates (AACE Class 5), never investment-grade. The model has
+> moved on from the thesis notebook: every numerical change and its reason is listed in
+> [`docs/errata.md`](docs/errata.md). The frozen notebook is kept only as a refactoring safety net.
 
 ## Layout
 
 ```
 legacy/M9_Integracion.ipynb   frozen thesis notebook (never edited)
-src/ccs_predesign/            the model package (being built)
+src/ccs_predesign/            the model package
 tests/                        pytest suite; tests/golden/ replays the legacy notebook
 docs/                         audit, errata, session log
 ```
@@ -55,3 +55,9 @@ Every equation the model uses, with its meaning (ES/EN), symbols and units, prov
 ## License
 
 Code: [MIT](LICENSE). Documentation (`docs/`, README): [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
+## How to cite
+
+Villota, S. (2026). *Herramientas de Diseño para Captura de Carbono por Absorción en Sectores
+Difíciles de Abatir* [Undergraduate thesis, Universidad de los Andes].
+<https://hdl.handle.net/1992/79873>
