@@ -28,7 +28,7 @@ NOT_EQUATIONS = {
     "gas:c_to_k",
     "gas:mean_molar_mass_kg_mol",
     "packing:reynolds",
-    "packing:schmidt",
+    "packing:resolve_model",
     "solvent:naoh_ions_kmol_m3",
     "tea:safe_div",
     "tea:evaluate_design_point",

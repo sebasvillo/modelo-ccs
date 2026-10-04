@@ -45,6 +45,20 @@ PACKINGS: dict[str, Packing] = {
         kind="structured", material="metal", nominal_size_m=None, a_spec_m2_m3=250.0,
         void_fraction=0.945, C_S=3.178, C_Fl=2.558, C_P0=0.191, C_L=1.334, C_V=0.385,
     ),
+    # Hydraulics: Billet & Schultes Table 2b. Mass transfer: Hanley & Chen (2012), sheet metal.
+    "mellapak_metal_250y": Packing(
+        kind="structured", material="metal", nominal_size_m=None, a_spec_m2_m3=250.0,
+        void_fraction=0.970, C_S=3.157, C_Fl=2.464, C_P0=0.292, corrugation_angle_deg=45.0,
+        mass_transfer_model="hanley_chen",
+    ),
+}  # fmt: skip
+
+# Hanley & Chen (2012), AIChE J. 58, 132, eqs. 70–72: metal sheet structured packings
+# (Mellapak/Flexipac type). Checked against the original; the Flagiello et al. (2021) review
+# transcribes the angle exponents differently (−3.072 on k_G, 4.078 on k_L).
+HC_SHEET_METAL = {
+    "A_L": 0.33, "A_V": 0.0084, "angle_exp_V": -7.15, "A_M": 0.539, "Re_V": 0.145,
+    "Re_L": -0.153, "We_L": 0.2, "Fr_L": -0.2, "rho": -0.033, "mu": 0.090, "angle_exp_M": 4.078,
 }  # fmt: skip
 
 # Ranges of the Billet & Schultes database (their Table 1).
@@ -270,7 +284,72 @@ def onda_kG_m_s(G_kg_m2s: float, rho_g: float, mu_g: float, D_g: float, packing:
     return C * a * D_g * (G_kg_m2s / (a * mu_g)) ** 0.7 * Sc ** (1 / 3) * (a * dp) ** -2.0
 
 
-MassTransferModel = Literal["billet_schultes", "onda"]
+MassTransferModel = Literal["auto", "billet_schultes", "hanley_chen", "onda"]
+
+
+def resolve_model(model: MassTransferModel, packing: Packing) -> str:
+    """Pick the mass-transfer model and check that the packing has its constants."""
+    chosen = packing.mass_transfer_model if model == "auto" else model
+    if chosen == "billet_schultes" and (packing.C_L is None or packing.C_V is None):
+        raise ValueError("Billet & Schultes gives no C_L/C_V for this packing")
+    if chosen == "hanley_chen" and packing.corrugation_angle_deg is None:
+        raise ValueError("Hanley & Chen is implemented for sheet-metal structured packings only")
+    if chosen == "onda" and (packing.kind == "structured" or packing.nominal_size_m is None):
+        raise ValueError("Onda (1968) applies to random packings with a nominal size only")
+    return chosen
+
+
+def _hc_angle(packing: Packing, exponent: float) -> float:
+    angle = math.radians(packing.corrugation_angle_deg)
+    return (math.cos(angle) / math.cos(math.pi / 4.0)) ** exponent
+
+
+def hc_kG_m_s(uG_m_s: float, rho_g: float, mu_g: float, D_g: float, packing: Packing) -> float:
+    """k_G = 0.0084·Re_V·Sc_V^(1/3)·(cos θ/cos 45°)^−7.15·D_V/d_e (Hanley & Chen eq. 71).
+
+    Equations: packing.hc_kg.
+    """
+    d_e = hydraulic_diameter_m(packing)
+    Re = d_e * uG_m_s * rho_g / mu_g
+    Sc = mu_g / (rho_g * D_g)
+    p = HC_SHEET_METAL
+    return p["A_V"] * Re * Sc ** (1 / 3) * _hc_angle(packing, p["angle_exp_V"]) * D_g / d_e
+
+
+def hc_kL_m_s(uL_m_s: float, rho_l: float, mu_l: float, D_l: float, packing: Packing) -> float:
+    """k_L = 0.33·Re_L·Sc_L^(1/3)·D_L/d_e (Hanley & Chen eq. 70). Equations: packing.hc_kl."""
+    d_e = hydraulic_diameter_m(packing)
+    Re = d_e * uL_m_s * rho_l / mu_l
+    Sc = mu_l / (rho_l * D_l)
+    return HC_SHEET_METAL["A_L"] * Re * Sc ** (1 / 3) * D_l / d_e
+
+
+def hc_area_m2_m3(
+    uG_m_s: float,
+    rho_g: float,
+    mu_g: float,
+    uL_m_s: float,
+    rho_l: float,
+    mu_l: float,
+    sigma_l: float,
+    packing: Packing,
+) -> float:
+    """a_m/a = 0.539 Re_V^0.145 Re_L^−0.153 We_L^0.2 Fr_L^−0.2 (ρ_V/ρ_L)^−0.033 (μ_V/μ_L)^0.090
+    (cos θ/cos 45°)^4.078 (Hanley & Chen eq. 72). Equations: packing.hc_area.
+    """
+    d_e = hydraulic_diameter_m(packing)
+    p = HC_SHEET_METAL
+    ratio = (
+        p["A_M"]
+        * (d_e * uG_m_s * rho_g / mu_g) ** p["Re_V"]
+        * (d_e * uL_m_s * rho_l / mu_l) ** p["Re_L"]
+        * (d_e * rho_l * uL_m_s**2 / sigma_l) ** p["We_L"]
+        * (uL_m_s**2 / (G_m_s2 * d_e)) ** p["Fr_L"]
+        * (rho_g / rho_l) ** p["rho"]
+        * (mu_g / mu_l) ** p["mu"]
+        * _hc_angle(packing, p["angle_exp_M"])
+    )
+    return packing.a_spec_m2_m3 * ratio
 
 
 def gas_side_kG_m_s(
@@ -280,17 +359,20 @@ def gas_side_kG_m_s(
     uG_m_s: float,
     h_L: float,
     packing: Packing,
-    model: MassTransferModel = "billet_schultes",
+    model: MassTransferModel = "auto",
 ) -> float:
     """Gas-film coefficient at the gas conditions.
 
-    Equations: packing.bs_kg, packing.onda_kg.
+    Equations: packing.bs_kg, packing.onda_kg, packing.hc_kg.
     """
+    model = resolve_model(model, packing)
     rho_g = gas.density_ideal_kg_m3(T_K, P_Pa, comp_gas)
     mu_g = gas.viscosity_sutherland_air_Pa_s(T_K)
     Dg = gas.diffusivity_CO2_in_air_m2_s(T_K, P_Pa)
     if model == "onda":
         return onda_kG_m_s(rho_g * uG_m_s, rho_g, mu_g, Dg, packing)
+    if model == "hanley_chen":
+        return hc_kG_m_s(uG_m_s, rho_g, mu_g, Dg, packing)
     return bs_kG_m_s(uG_m_s, h_L, rho_g, mu_g, Dg, packing)
 
 
@@ -299,13 +381,17 @@ def liquid_side(
     C_NaOH_M: float,
     uL_m_s: float,
     packing: Packing,
-    model: MassTransferModel = "billet_schultes",
+    model: MassTransferModel = "auto",
+    gas_props: tuple[float, float, float] | None = None,
 ) -> tuple[float, float, float, float]:
     """kL [m/s], CO2 diffusivity D_l [m2/s], interfacial area a_e [m2/m3] and holdup h_L at T.
 
+    gas_props = (u_G, ρ_G, μ_G), needed by Hanley & Chen's area correlation.
+
     Equations: packing.bs_kl, packing.bs_area, packing.bs_holdup, packing.onda_kl,
-    packing.onda_wetted_area.
+    packing.onda_wetted_area, packing.hc_kl, packing.hc_area.
     """
+    model = resolve_model(model, packing)
     rho_l = solvent.density_kg_m3(T_K, C_NaOH_M)
     mu_l = solvent.viscosity_Pa_s(T_K, C_NaOH_M)
     D_l = solvent.diffusivity_CO2_m2_s(T_K, C_NaOH_M)
@@ -315,5 +401,11 @@ def liquid_side(
         L = rho_l * uL_m_s
         a_w = onda_wetted_area_m2_m3(L, rho_l, mu_l, sigma, packing)
         return onda_kL_m_s(L, a_w, rho_l, mu_l, D_l, packing), D_l, a_w, h_L
+    if model == "hanley_chen":
+        if gas_props is None:
+            raise ValueError("Hanley & Chen's area needs the gas velocity and properties")
+        uG, rho_g, mu_g = gas_props
+        a_e = hc_area_m2_m3(uG, rho_g, mu_g, uL_m_s, rho_l, mu_l, sigma, packing)
+        return hc_kL_m_s(uL_m_s, rho_l, mu_l, D_l, packing), D_l, a_e, h_L
     a_e = bs_wetted_area_m2_m3(uL_m_s, rho_l, mu_l, sigma, packing)
     return bs_kL_m_s(uL_m_s, h_L, D_l, packing), D_l, a_e, h_L

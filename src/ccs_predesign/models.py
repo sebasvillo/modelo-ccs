@@ -27,8 +27,14 @@ class Packing(_Frozen):
     C_S: float = Field(gt=0, description="loading-point constant")
     C_Fl: float = Field(gt=0, description="flooding-point constant")
     C_P0: float = Field(gt=0, description="pressure-drop constant")
-    C_L: float = Field(gt=0, description="liquid-side mass-transfer constant")
-    C_V: float = Field(gt=0, description="gas-side mass-transfer constant")
+    C_L: float | None = Field(None, gt=0, description="liquid-side mass-transfer constant")
+    C_V: float | None = Field(None, gt=0, description="gas-side mass-transfer constant")
+    corrugation_angle_deg: float | None = Field(
+        None, gt=0, lt=90, description="sheet-metal structured packings, from the vertical"
+    )
+    mass_transfer_model: Literal["billet_schultes", "hanley_chen"] = Field(
+        "billet_schultes", description="recommended model for this packing"
+    )
 
 
 class FlueGas(_Frozen):
@@ -51,7 +57,9 @@ def _legacy_LG_grid() -> tuple[float, ...]:
 class AbsorberSpec(_Frozen):
     capture_target: float = Field(0.90, gt=0, lt=1)
     packing_name: str = "pall_ring_metal_25mm"
-    mass_transfer_model: Literal["billet_schultes", "onda"] = "billet_schultes"
+    mass_transfer_model: Literal["auto", "billet_schultes", "hanley_chen", "onda"] = Field(
+        "auto", description="auto = the packing's recommended model"
+    )
     max_height_m: float = Field(30.0, gt=0, le=100.0)
     dz_m: float = Field(0.02, ge=0.005, le=1.0, description="integration step")
     flood_fraction: float = Field(0.60, gt=0, lt=1)

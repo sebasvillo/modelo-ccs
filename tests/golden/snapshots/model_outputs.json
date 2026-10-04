@@ -1,5 +1,5 @@
 {
-  "errata_id": "E-018",
+  "errata_id": "E-019",
   "outputs": {
     "current_density_optimum": {
       "j_mA_cm2": 285.32609003518195,
@@ -51,6 +51,18 @@
       "D_col_m": 9.68910559991501,
       "capture_achieved": 0.9,
       "feasible": true
+    },
+    "optimisation_structured_mellapak_250y": {
+      "NaOH_M": 3.501282051282051,
+      "LG_vol": 0.005115789473684211,
+      "LCOC_usd_t": 448.7928051717062,
+      "capex_total_usd": 665432508.5665349,
+      "opex_total_usd_y": 159764554.15052813,
+      "height_m": 4.030758988748709,
+      "D_col_m": 6.77191580952871,
+      "capture_achieved": 0.9,
+      "feasible": true,
+      "n_feasible_coarse": 307
     },
     "optimisation_structured_ralu_pak_yc250": {
       "NaOH_M": 2.4576923076923074,

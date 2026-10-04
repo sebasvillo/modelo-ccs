@@ -103,3 +103,52 @@ def test_onda_alternative_and_structured_packing():
 
 def test_surface_tension_of_water_IAPWS():
     assert solvent.surface_tension_N_m(298.15, 0.0) == pytest.approx(0.07197, abs=2e-5)
+
+
+MELLAPAK = packing.PACKINGS["mellapak_metal_250y"]
+
+
+def test_hanley_chen_sheet_metal_formulas():
+    """Hanley & Chen (2012) eqs. 70–72, as printed in the original (not the review's version)."""
+    d_e = 4 * 0.970 / 250.0
+    rho_g, mu_g, Dg, uG = 1.1, 1.9e-5, 1.7e-5, 1.5
+    rho_l, mu_l, Dl, uL, sigma = 1030.0, 8e-4, 1.6e-9, 0.01, 0.075
+    Re_V, Re_L = d_e * uG * rho_g / mu_g, d_e * uL * rho_l / mu_l
+    kG = 0.0084 * Re_V * (mu_g / (rho_g * Dg)) ** (1 / 3) * Dg / d_e
+    kL = 0.33 * Re_L * (mu_l / (rho_l * Dl)) ** (1 / 3) * Dl / d_e
+    am = 0.539 * Re_V**0.145 * Re_L**-0.153 * (d_e * rho_l * uL**2 / sigma) ** 0.2
+    am *= (uL**2 / (9.81 * d_e)) ** -0.2 * (rho_g / rho_l) ** -0.033 * (mu_g / mu_l) ** 0.090
+    assert packing.hc_kG_m_s(uG, rho_g, mu_g, Dg, MELLAPAK) == pytest.approx(kG, rel=1e-12)
+    assert packing.hc_kL_m_s(uL, rho_l, mu_l, Dl, MELLAPAK) == pytest.approx(kL, rel=1e-12)
+    a_m = packing.hc_area_m2_m3(uG, rho_g, mu_g, uL, rho_l, mu_l, sigma, MELLAPAK)
+    assert a_m == pytest.approx(250.0 * am, rel=1e-12)
+
+
+def test_corrugation_angle_exponents_follow_the_original():
+    steep = MELLAPAK.model_copy(update={"corrugation_angle_deg": 30.0})
+    factor = math.cos(math.radians(30)) / math.cos(math.radians(45))
+    args = (1.5, 1.1, 1.9e-5, 1.7e-5)
+    ratio_kG = packing.hc_kG_m_s(*args, steep) / packing.hc_kG_m_s(*args, MELLAPAK)
+    assert ratio_kG == pytest.approx(factor**-7.15, rel=1e-12)
+    area = (1.5, 1.1, 1.9e-5, 0.01, 1030.0, 8e-4, 0.075)
+    ratio_a = packing.hc_area_m2_m3(*area, steep) / packing.hc_area_m2_m3(*area, MELLAPAK)
+    assert ratio_a == pytest.approx(factor**4.078, rel=1e-12)
+
+
+def test_mellapak_uses_its_recommended_model():
+    """Billet & Schultes has no C_L/C_V for Mellapak 250Y: 'auto' picks Hanley & Chen."""
+    r = simulate_absorber(
+        FlueGas(), Solvent(), AbsorberSpec(packing_name="mellapak_metal_250y"), 0.02
+    )
+    assert r.reached_target and r.KGa_1_s > 0
+    with pytest.raises(ValueError):
+        simulate_absorber(
+            FlueGas(),
+            Solvent(),
+            AbsorberSpec(packing_name="mellapak_metal_250y", mass_transfer_model="billet_schultes"),
+            0.02,
+        )
+    with pytest.raises(ValueError):
+        simulate_absorber(
+            FlueGas(), Solvent(), AbsorberSpec(mass_transfer_model="hanley_chen"), 0.02
+        )
