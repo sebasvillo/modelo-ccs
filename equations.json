@@ -832,7 +832,7 @@
       "id": "absorber.ntu_step",
       "title_es": "Unidades de transferencia por tramo",
       "title_en": "Transfer units per slice",
-      "latex": "\\Delta NTU = \\dfrac{K_G\\,a_e\\,c_{tot}\\,\\Delta z}{G''},\\qquad y_{z+\\Delta z} = y^* + (y_z - y^*)\\,e^{-\\Delta NTU}",
+      "latex": "\\Delta NTU = \\dfrac{K_G\\,a_e\\,c_{tot}\\,\\Delta z}{G''_{in}}\\,\\dfrac{(1-y)^2}{1-y_{in}},\\qquad y_{z+\\Delta z} = y^* + (y_z - y^*)\\,e^{-\\Delta NTU}",
       "meaning_es": "Cuánto CO₂ se absorbe en cada tramo de la torre (adimensional).",
       "meaning_en": "How much CO₂ each slice of the column absorbs (dimensionless).",
       "symbols": [
@@ -853,6 +853,7 @@
         "absorber:simulate_absorber"
       ],
       "errata": [
+        "E-018",
         "E-001",
         "E-007"
       ]
@@ -886,12 +887,13 @@
       "id": "absorber.capture",
       "title_es": "Fracción de captura",
       "title_en": "Capture fraction",
-      "latex": "\\phi = \\dfrac{y_{in} - y_{out}}{y_{in}}",
+      "latex": "\\phi = 1 - \\dfrac{Y_{out}}{Y_{in}},\\qquad Y = \\dfrac{y}{1-y}",
       "meaning_es": "Qué parte del CO₂ que entra queda en el solvente.",
       "meaning_en": "Share of the incoming CO₂ that ends up in the solvent.",
       "symbols": [
         "y",
-        "y_top"
+        "y_top",
+        "Y"
       ],
       "provenance": "theory",
       "reference": null,
@@ -899,21 +901,24 @@
       "implemented_by": [
         "absorber:simulate_absorber"
       ],
-      "errata": []
+      "errata": [
+        "E-018"
+      ]
     },
     {
       "id": "absorber.hydroxide_balance",
       "title_es": "Balance de hidróxido (contracorriente)",
       "title_en": "Hydroxide balance (counter-current)",
-      "latex": "[OH^-](z) = [OH^-]_{in} - \\nu\\,\\dfrac{G\\,(y(z) - y_{out})}{Q_L}",
+      "latex": "[OH^-](z) = [OH^-]_{in} - \\nu\\,\\dfrac{G_I\\,(Y(z) - Y_{out})}{Q_L}",
       "meaning_es": "Cada CO₂ absorbido consume dos OH⁻; el solvente fresco entra por arriba.",
       "meaning_en": "Each CO₂ absorbed consumes two OH⁻; fresh solvent enters at the top.",
       "symbols": [
         "OH",
         "nu",
-        "G",
+        "G_I",
         "y",
         "y_top",
+        "Y",
         "Q_L"
       ],
       "provenance": "theory",
@@ -923,6 +928,7 @@
         "absorber:simulate_absorber"
       ],
       "errata": [
+        "E-018",
         "E-004",
         "E-007"
       ]
@@ -931,15 +937,16 @@
       "id": "absorber.energy_balance",
       "title_es": "Balance de energía del líquido",
       "title_en": "Liquid energy balance",
-      "latex": "T_L(z) = T_{L,in} + \\dfrac{(-\\Delta H_{abs})\\,G\\,(y(z) - y_{out})}{\\dot m_L\\,c_{p,L}}",
+      "latex": "T_L(z) = T_{L,in} + \\dfrac{(-\\Delta H_{abs})\\,G_I\\,(Y(z) - Y_{out})}{\\dot m_L\\,c_{p,L}}",
       "meaning_es": "El calor de reacción calienta el solvente mientras baja (adiabático; sin evaporación).",
       "meaning_en": "Reaction heat warms the solvent on its way down (adiabatic; no evaporation).",
       "symbols": [
         "T_L",
         "dH",
-        "G",
+        "G_I",
         "y",
         "y_top",
+        "Y",
         "m_L",
         "cp_L"
       ],
@@ -950,6 +957,7 @@
         "absorber:simulate_absorber"
       ],
       "errata": [
+        "E-018",
         "E-013"
       ]
     },
@@ -1933,6 +1941,20 @@
       "unit": "m/s",
       "es": "velocidad del gas en el punto de carga",
       "en": "gas velocity at the loading point"
+    },
+    "Y": {
+      "key": "Y",
+      "latex": "Y",
+      "unit": "mol/mol",
+      "es": "razón molar CO₂/gas inerte",
+      "en": "CO₂/inert-gas mole ratio"
+    },
+    "G_I": {
+      "key": "G_I",
+      "latex": "G_I",
+      "unit": "mol/s",
+      "es": "flujo de gas inerte (sin CO₂), constante",
+      "en": "inert (CO₂-free) gas flow, constant"
     },
     "c_stack": {
       "key": "c_stack",
