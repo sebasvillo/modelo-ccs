@@ -586,15 +586,16 @@
       "id": "packing.column_diameter",
       "title_es": "Diámetro de columna",
       "title_en": "Column diameter",
-      "latex": "A = \\dfrac{Q_G}{f\\,v_{fl}},\\qquad D = \\sqrt{4A/\\pi}",
-      "meaning_es": "El gas debe pasar a una fracción f de la velocidad de inundación de Billet & Schultes.",
-      "meaning_en": "The gas must flow at a fraction f of the Billet & Schultes flooding velocity.",
+      "latex": "A = \\dfrac{Q_G}{f\\,v_{fl}},\\qquad n = \\left\\lceil \\dfrac{A}{\\pi D_{max}^2/4} \\right\\rceil,\\qquad D = \\sqrt{\\dfrac{4A}{n\\pi}}",
+      "meaning_es": "El gas debe pasar a una fracción f de la velocidad de inundación; si una sola torre supera el diámetro máximo, se reparte en n trenes iguales.",
+      "meaning_en": "The gas must flow at a fraction f of the flooding velocity; if one column would exceed the maximum diameter, the duty is split into n identical trains.",
       "symbols": [
         "A_col",
         "Q_G",
         "f",
         "v_flood",
-        "D_col"
+        "D_col",
+        "n_trains"
       ],
       "provenance": "theory",
       "reference": null,
@@ -2022,6 +2023,13 @@
       "unit": "m/s",
       "es": "velocidad del gas en el punto de carga",
       "en": "gas velocity at the loading point"
+    },
+    "n_trains": {
+      "key": "n_trains",
+      "latex": "n",
+      "unit": "-",
+      "es": "número de trenes (columnas en paralelo)",
+      "en": "number of trains (parallel columns)"
     },
     "Y": {
       "key": "Y",

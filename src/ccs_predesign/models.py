@@ -61,6 +61,9 @@ class AbsorberSpec(_Frozen):
         "auto", description="auto = the packing's recommended model"
     )
     max_height_m: float = Field(30.0, gt=0, le=100.0)
+    max_diameter_m: float | None = Field(
+        None, gt=0, description="per column; larger duties are split into parallel trains"
+    )
     dz_m: float = Field(0.02, ge=0.005, le=1.0, description="integration step")
     flood_fraction: float = Field(0.60, gt=0, lt=1)
     LG_grid_vol: tuple[float, ...] = Field(
@@ -174,7 +177,8 @@ class AbsorberResult(_Frozen):
     D_l_m2_s: float
     uG_m_s: float
     uL_m_s: float
-    D_col_m: float
+    D_col_m: float = Field(description="diameter of each column (train)")
+    n_trains: int = Field(1, ge=1, description="identical columns in parallel")
     v_flood_m_s: float = Field(description="gas velocity at the flooding point (Billet & Schultes)")
     v_loading_m_s: float = Field(description="gas velocity at the loading point")
     v_oper_m_s: float

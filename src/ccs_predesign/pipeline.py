@@ -26,6 +26,7 @@ def run_case(inp: CaseInput) -> CaseResult:
         cell,
         inp.gas.P_bar,
         inp.tea,
+        best.n_trains,
     )
     hours = inp.tea.hours_per_year
     t_per_hour = annual_t_from_mol_s(best.CO2_captured_mol_s, 1.0)
