@@ -583,104 +583,12 @@
       ]
     },
     {
-      "id": "packing.sherwood_particle",
-      "title_es": "Sherwood tipo partícula (legacy)",
-      "title_en": "Particle-type Sherwood (legacy)",
-      "latex": "Sh = 2 + 1.10\\,Re^{n}\\,Sc^{1/3},\\quad n = 0.7\\ (\\text{gas}),\\ 0.6\\ (\\text{líquido}),\\quad k = Sh\\,D/d_h,\\ d_h = 4\\varepsilon/a",
-      "meaning_es": "Forma de Ranz–Marshall para partículas; solo se usa todavía para empaques estructurados (sin validar).",
-      "meaning_en": "Ranz–Marshall particle form; still used only for structured packings (not validated).",
-      "symbols": [
-        "kG",
-        "kL",
-        "eps",
-        "a"
-      ],
-      "provenance": "own_closure",
-      "reference": "thesis",
-      "validity": "not validated for packed columns",
-      "implemented_by": [
-        "packing:sherwood_gas",
-        "packing:sherwood_liquid",
-        "packing:liquid_film_kL"
-      ],
-      "errata": [
-        "E-014"
-      ]
-    },
-    {
-      "id": "packing.wetting_legacy",
-      "title_es": "Mojado exponencial (legacy)",
-      "title_en": "Exponential wetting (legacy)",
-      "latex": "\\dfrac{a_e}{a} = 0.2 + 0.8\\left[1 - \\exp(-u_L/u_{ref})\\right]",
-      "meaning_es": "Cierre propio de la tesis; solo para empaques estructurados mientras no haya correlación validada.",
-      "meaning_en": "Thesis own closure; only for structured packings until a validated correlation is added.",
-      "symbols": [
-        "a_e",
-        "a",
-        "u_L"
-      ],
-      "provenance": "own_closure",
-      "reference": "thesis",
-      "validity": null,
-      "implemented_by": [
-        "packing:wetting_fraction"
-      ],
-      "errata": []
-    },
-    {
-      "id": "packing.ergun",
-      "title_es": "Caída de presión (Ergun)",
-      "title_en": "Pressure drop (Ergun)",
-      "latex": "\\dfrac{\\Delta P}{H} = 150\\dfrac{(1-\\varepsilon)^2\\mu_G u_G}{\\varepsilon^3 d_p^2} + 1.75\\dfrac{(1-\\varepsilon)\\rho_G u_G^2}{\\varepsilon^3 d_p}",
-      "meaning_es": "Pérdida de presión del gas al atravesar el lecho; pensada para lechos de partículas (pendiente reemplazar).",
-      "meaning_en": "Gas pressure loss across the bed; meant for particle beds (replacement pending).",
-      "symbols": [
-        "dP",
-        "H",
-        "eps",
-        "mu_G",
-        "u_G",
-        "d_p",
-        "rho_G"
-      ],
-      "provenance": "literature",
-      "reference": "ergun1952",
-      "validity": "particle beds; dry bed, no liquid holdup",
-      "implemented_by": [
-        "packing:pressure_drop_ergun_Pa_m"
-      ],
-      "errata": []
-    },
-    {
-      "id": "packing.flooding_legacy",
-      "title_es": "Velocidad de inundación (legacy)",
-      "title_en": "Flooding velocity (legacy)",
-      "latex": "v_{fl} = C_{fl}\\sqrt{\\dfrac{(\\rho_L - \\rho_G)\\,g\\,d_p}{\\rho_G}}\\;\\varepsilon^{0.15}",
-      "meaning_es": "Velocidad máxima de gas antes de inundar; cierre de la tesis, probablemente optimista (aviso de factor F).",
-      "meaning_en": "Maximum gas velocity before flooding; thesis closure, likely optimistic (F-factor warning).",
-      "symbols": [
-        "v_flood",
-        "rho_L",
-        "rho_G",
-        "g",
-        "d_p",
-        "eps"
-      ],
-      "provenance": "own_closure",
-      "reference": "thesis",
-      "validity": "not validated; F > 3 Pa^0.5 is warned (Kister 1992)",
-      "implemented_by": [
-        "packing:flooding_velocity_m_s"
-      ],
-      "errata": []
-    },
-    {
       "id": "packing.column_diameter",
       "title_es": "Diámetro de columna",
       "title_en": "Column diameter",
       "latex": "A = \\dfrac{Q_G}{f\\,v_{fl}},\\qquad D = \\sqrt{4A/\\pi}",
-      "meaning_es": "El gas debe pasar a una fracción f de la velocidad de inundación.",
-      "meaning_en": "The gas must flow at a fraction f of the flooding velocity.",
+      "meaning_es": "El gas debe pasar a una fracción f de la velocidad de inundación de Billet & Schultes.",
+      "meaning_en": "The gas must flow at a fraction f of the Billet & Schultes flooding velocity.",
       "symbols": [
         "A_col",
         "Q_G",
@@ -694,7 +602,206 @@
       "implemented_by": [
         "packing:column_diameter_m"
       ],
-      "errata": []
+      "errata": [
+        "E-017"
+      ]
+    },
+    {
+      "id": "packing.bs_holdup",
+      "title_es": "Retención de líquido (Billet & Schultes)",
+      "title_en": "Liquid holdup (Billet & Schultes)",
+      "latex": "h_L = \\left(12\\,\\dfrac{\\eta_L\\,u_L\\,a^2}{g\\,\\rho_L}\\right)^{1/3},\\qquad d_h = \\dfrac{4\\varepsilon}{a}",
+      "meaning_es": "Qué fracción del volumen del lecho ocupa el líquido que escurre en película.",
+      "meaning_en": "Fraction of the bed volume taken by the trickling liquid film.",
+      "symbols": [
+        "h_L",
+        "mu_L",
+        "u_L",
+        "a",
+        "g",
+        "rho_L",
+        "d_h",
+        "eps"
+      ],
+      "provenance": "literature",
+      "reference": "billet1999",
+      "validity": "below the loading point; between loading and flooding h_L = h_S + (h_Fl − h_S)(u_V/u_Fl)^13",
+      "implemented_by": [
+        "packing:bs_holdup_below_loading",
+        "packing:bs_holdup",
+        "packing:hydraulic_diameter_m",
+        "packing:liquid_side"
+      ],
+      "errata": [
+        "E-017"
+      ]
+    },
+    {
+      "id": "packing.bs_flooding",
+      "title_es": "Punto de inundación (Billet & Schultes)",
+      "title_en": "Flooding point (Billet & Schultes)",
+      "latex": "v_{fl} = \\sqrt{2}\\sqrt{\\dfrac{g}{\\psi_{Fl}}}\\dfrac{(\\varepsilon - h_{L,Fl})^{3/2}}{\\varepsilon^{1/2}}\\sqrt{\\dfrac{h_{L,Fl}}{a}}\\sqrt{\\dfrac{\\rho_L}{\\rho_G}},\\quad h_{L,Fl}^3(3h_{L,Fl} - \\varepsilon) = \\dfrac{6}{g}a^2\\varepsilon\\dfrac{\\eta_L}{\\rho_L}\\dfrac{L}{V}\\dfrac{\\rho_G}{\\rho_L}v_{fl}",
+      "meaning_es": "Velocidad del gas a la que el líquido ya no puede bajar y la torre se inunda; depende del empaque y de cuánto líquido circula.",
+      "meaning_en": "Gas velocity at which the liquid can no longer flow down and the column floods; depends on the packing and on the liquid load.",
+      "symbols": [
+        "v_flood",
+        "psi",
+        "eps",
+        "h_Fl",
+        "a",
+        "rho_L",
+        "rho_G",
+        "g",
+        "mu_L",
+        "LV",
+        "C_bs"
+      ],
+      "provenance": "literature",
+      "reference": "billet1999",
+      "validity": "F_V 0.47–4.59 Pa^0.5, u_L 4.9–144 m³/(m²·h) (database range)",
+      "implemented_by": [
+        "packing:bs_flooding"
+      ],
+      "errata": [
+        "E-017"
+      ]
+    },
+    {
+      "id": "packing.bs_loading",
+      "title_es": "Punto de carga (Billet & Schultes)",
+      "title_en": "Loading point (Billet & Schultes)",
+      "latex": "v_S = \\sqrt{\\dfrac{g}{\\psi_S}}\\left[\\dfrac{\\varepsilon}{a^{1/6}} - a^{1/2}\\left(\\dfrac{12\\,\\eta_L\\,u_{L,S}}{g\\,\\rho_L}\\right)^{1/3}\\right]\\left(\\dfrac{12\\,\\eta_L\\,u_{L,S}}{g\\,\\rho_L}\\right)^{1/6}\\sqrt{\\dfrac{\\rho_L}{\\rho_G}}",
+      "meaning_es": "Velocidad del gas a partir de la cual el gas empieza a frenar el líquido (~70 % de la inundación).",
+      "meaning_en": "Gas velocity above which the gas starts holding the liquid back (~70 % of flooding).",
+      "symbols": [
+        "v_load",
+        "psi",
+        "eps",
+        "a",
+        "mu_L",
+        "g",
+        "rho_L",
+        "rho_G",
+        "C_bs"
+      ],
+      "provenance": "literature",
+      "reference": "billet1999",
+      "validity": null,
+      "implemented_by": [
+        "packing:bs_loading_velocity"
+      ],
+      "errata": [
+        "E-017"
+      ]
+    },
+    {
+      "id": "packing.bs_pressure_drop",
+      "title_es": "Caída de presión con líquido (Billet & Schultes)",
+      "title_en": "Irrigated pressure drop (Billet & Schultes)",
+      "latex": "\\dfrac{\\Delta P}{H} = \\psi_L\\dfrac{a}{(\\varepsilon - h_L)^3}\\dfrac{F_V^2}{2}\\dfrac{1}{K},\\quad \\psi_L = C_{P,0}\\left(\\dfrac{64}{Re_V} + \\dfrac{1.8}{Re_V^{0.08}}\\right)\\left(\\dfrac{\\varepsilon - h_L}{\\varepsilon}\\right)^{1.5}\\left(\\dfrac{h_L}{h_{L,S}}\\right)^{0.3}e^{C_1\\sqrt{Fr_L}}",
+      "meaning_es": "Cuánta presión pierde el gas al cruzar el lecho mojado; el líquido le quita espacio y lo frena.",
+      "meaning_en": "Pressure the gas loses crossing the wetted bed; the liquid takes up space and slows it down.",
+      "symbols": [
+        "dP",
+        "H",
+        "psi",
+        "a",
+        "eps",
+        "h_L",
+        "F_V",
+        "K_wall",
+        "C_bs"
+      ],
+      "provenance": "literature",
+      "reference": "billet1999",
+      "validity": "up to the flooding point; C_1 = 13300/a^1.5, Fr_L = u_L²a/g",
+      "implemented_by": [
+        "packing:bs_pressure_drop_Pa_m"
+      ],
+      "errata": [
+        "E-017"
+      ]
+    },
+    {
+      "id": "packing.bs_area",
+      "title_es": "Área interfacial (Billet & Schultes)",
+      "title_en": "Interfacial area (Billet & Schultes)",
+      "latex": "\\dfrac{a_e}{a} = 1.5\\,(a\\,d_h)^{-0.5}\\left(\\dfrac{u_L d_h}{\\nu_L}\\right)^{-0.2}\\left(\\dfrac{u_L^2\\rho_L d_h}{\\sigma}\\right)^{0.75}\\left(\\dfrac{u_L^2}{g\\,d_h}\\right)^{-0.45}",
+      "meaning_es": "Superficie de contacto gas–líquido por m³ de lecho; crece con el caudal de líquido.",
+      "meaning_en": "Gas–liquid contact area per m³ of bed; grows with the liquid flow.",
+      "symbols": [
+        "a_e",
+        "a",
+        "d_h",
+        "u_L",
+        "rho_L",
+        "sigma",
+        "g"
+      ],
+      "provenance": "literature",
+      "reference": "billet1999",
+      "validity": "below the loading point; σ floored at 0.03 N/m",
+      "implemented_by": [
+        "packing:bs_wetted_area_m2_m3",
+        "packing:liquid_side"
+      ],
+      "errata": [
+        "E-016"
+      ]
+    },
+    {
+      "id": "packing.bs_kl",
+      "title_es": "Coeficiente de película líquida (Billet & Schultes)",
+      "title_en": "Liquid-film coefficient (Billet & Schultes)",
+      "latex": "k_L = C_L\\,12^{1/6}\\left(\\dfrac{u_L}{h_L}\\,\\dfrac{D_{CO_2}}{d_h}\\right)^{1/2}",
+      "meaning_es": "Teoría de penetración: el líquido renueva su superficie cada vez que recorre un tramo del empaque.",
+      "meaning_en": "Penetration theory: the liquid renews its surface each time it runs along a packing element.",
+      "symbols": [
+        "kL",
+        "C_bs",
+        "u_L",
+        "h_L",
+        "D_L",
+        "d_h"
+      ],
+      "provenance": "literature",
+      "reference": "billet1999",
+      "validity": "u_L 0.26–118 m³/(m²·h); mean deviation 8.3 % (Flagiello 2021)",
+      "implemented_by": [
+        "packing:bs_kL_m_s",
+        "packing:liquid_side"
+      ],
+      "errata": [
+        "E-016"
+      ]
+    },
+    {
+      "id": "packing.bs_kg",
+      "title_es": "Coeficiente de película gaseosa (Billet & Schultes)",
+      "title_en": "Gas-film coefficient (Billet & Schultes)",
+      "latex": "k_G = C_V\\,\\dfrac{1}{\\sqrt{\\varepsilon - h_L}}\\sqrt{\\dfrac{a}{d_h}}\\,D_G\\left(\\dfrac{u_G}{a\\,\\nu_G}\\right)^{3/4}\\left(\\dfrac{\\nu_G}{D_G}\\right)^{1/3}",
+      "meaning_es": "Qué tan rápido llega el CO₂ desde el gas hasta la superficie del líquido, en los canales que deja el líquido.",
+      "meaning_en": "How fast CO₂ reaches the liquid surface through the channels the liquid leaves open.",
+      "symbols": [
+        "kG",
+        "C_bs",
+        "eps",
+        "h_L",
+        "a",
+        "d_h",
+        "D_G",
+        "u_G"
+      ],
+      "provenance": "literature",
+      "reference": "billet1999",
+      "validity": "F_V ≤ 2.77 Pa^0.5; mean deviation 12.4 % (Flagiello 2021)",
+      "implemented_by": [
+        "packing:bs_kG_m_s",
+        "packing:gas_side_kG_m_s"
+      ],
+      "errata": [
+        "E-016"
+      ]
     },
     {
       "id": "absorber.two_film",
@@ -715,7 +822,6 @@
       "reference": "danckwerts1970",
       "validity": null,
       "implemented_by": [
-        "packing:mass_transfer_coefficients",
         "absorber:simulate_absorber"
       ],
       "errata": [
@@ -1765,6 +1871,69 @@
       "es": "energía eléctrica por mol de CO₂",
       "en": "electrical energy per mol CO₂"
     },
+    "h_L": {
+      "key": "h_L",
+      "latex": "h_L",
+      "unit": "m³/m³",
+      "es": "retención de líquido (holdup)",
+      "en": "liquid holdup"
+    },
+    "h_Fl": {
+      "key": "h_Fl",
+      "latex": "h_{L,Fl}",
+      "unit": "m³/m³",
+      "es": "holdup en el punto de inundación",
+      "en": "holdup at the flooding point"
+    },
+    "d_h": {
+      "key": "d_h",
+      "latex": "d_h",
+      "unit": "m",
+      "es": "diámetro hidráulico del empaque",
+      "en": "packing hydraulic diameter"
+    },
+    "LV": {
+      "key": "LV",
+      "latex": "L/V",
+      "unit": "kg/kg",
+      "es": "razón másica líquido/gas",
+      "en": "liquid/gas mass ratio"
+    },
+    "psi": {
+      "key": "psi",
+      "latex": "\\psi",
+      "unit": "-",
+      "es": "coeficiente de resistencia",
+      "en": "resistance coefficient"
+    },
+    "C_bs": {
+      "key": "C_bs",
+      "latex": "C_L, C_V, C_S, C_{Fl}, C_{P,0}",
+      "unit": "-",
+      "es": "constantes del empaque (Billet & Schultes)",
+      "en": "packing constants (Billet & Schultes)"
+    },
+    "F_V": {
+      "key": "F_V",
+      "latex": "F_V",
+      "unit": "Pa^{1/2}",
+      "es": "factor de carga del gas",
+      "en": "gas load factor"
+    },
+    "K_wall": {
+      "key": "K_wall",
+      "latex": "K",
+      "unit": "-",
+      "es": "factor de pared",
+      "en": "wall factor"
+    },
+    "v_load": {
+      "key": "v_load",
+      "latex": "v_{S}",
+      "unit": "m/s",
+      "es": "velocidad del gas en el punto de carga",
+      "en": "gas velocity at the loading point"
+    },
     "c_stack": {
       "key": "c_stack",
       "latex": "c_{stack}",
@@ -1968,6 +2137,14 @@
     "thesis": {
       "key": "thesis",
       "citation": "Villota, S. (2026). Herramientas de Diseño para Captura de Carbono por Absorción en Sectores Difíciles de Abatir. Undergraduate thesis, Universidad de los Andes."
+    },
+    "billet1999": {
+      "key": "billet1999",
+      "citation": "Billet, R., Schultes, M. (1999). Prediction of mass transfer columns with dumped and arranged packings: updated summary of the calculation method of Billet and Schultes. Trans IChemE 77(A), 498–504."
+    },
+    "flagiello2021": {
+      "key": "flagiello2021",
+      "citation": "Flagiello, D., Parisi, A., Lancia, A., Di Natale, F. (2021). A review on gas-liquid mass transfer coefficients in packed-bed columns. ChemEngineering 5, 43. doi:10.3390/chemengineering5030043."
     },
     "zhang2024": {
       "key": "zhang2024",
