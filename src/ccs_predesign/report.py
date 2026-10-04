@@ -61,6 +61,7 @@ def explain_case(inp: CaseInput, result: CaseResult) -> tuple[ExplainedValue, ..
             a.D_col_m,
             "m",
             "packing.column_diameter",
+            n_trains=float(a.n_trains),
             Q_G=a.Qg_actual_m3_s,
             f=spec.flood_fraction,
             v_flood=a.v_flood_m_s,

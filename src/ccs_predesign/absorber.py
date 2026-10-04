@@ -81,11 +81,16 @@ def simulate_absorber(
     LV_mass = LG_vol * rho_l / rho_g
     v_flood, h_L_Fl = packing.bs_flooding(LV_mass, rho_g, mu_g, rho_l, mu_l, pk)
     v_loading = packing.bs_loading_velocity(LV_mass, rho_g, mu_g, rho_l, mu_l, pk)
+    n_trains = 1
     if D_col_fixed_m is None:
         D_col = packing.column_diameter_m(Qg_m3_s, v_flood, spec.flood_fraction)
+        if spec.max_diameter_m is not None and D_col > spec.max_diameter_m:
+            # identical parallel trains at the same velocities (audit §13)
+            n_trains = math.ceil((D_col / spec.max_diameter_m) ** 2)
+            D_col = D_col / math.sqrt(n_trains)
     else:
         D_col = float(D_col_fixed_m)
-    A_col = math.pi * D_col**2 / 4.0
+    A_col = n_trains * math.pi * D_col**2 / 4.0  # total cross-section of all trains
     uG = Qg_m3_s / A_col
     uL = Ql_m3_s / A_col
     v_oper = uG
@@ -364,6 +369,7 @@ def simulate_absorber(
         uG_m_s=uG,
         uL_m_s=uL,
         D_col_m=D_col,
+        n_trains=n_trains,
         v_flood_m_s=v_flood,
         v_loading_m_s=v_loading,
         v_oper_m_s=v_oper,

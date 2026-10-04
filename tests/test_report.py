@@ -4,7 +4,7 @@ import math
 
 import pytest
 
-from ccs_predesign.models import CaseInput, Solvent
+from ccs_predesign.models import AbsorberSpec, CaseInput, Solvent
 from ccs_predesign.pipeline import run_case
 from ccs_predesign.report import explain_case
 
@@ -17,7 +17,9 @@ def Y(y):
 FORMULAS = {
     "height_m": lambda v: v["NTU"] * v["G_flux"] / (v["c_tot"] * v["KGa_mean"]),
     "capture_fraction": lambda v: 1 - Y(v["y_top"]) / Y(v["y"]),
-    "diameter_m": lambda v: math.sqrt(4.0 * v["Q_G"] / (v["f"] * v["v_flood"]) / math.pi),
+    "diameter_m": lambda v: math.sqrt(
+        4.0 * v["Q_G"] / (v["f"] * v["v_flood"]) / (v["n_trains"] * math.pi)
+    ),
     "KGa_inlet_1_s": lambda v: v["a_e"] / (1 / v["kG"] + v["H_cc"] / (v["E"] * v["kL"])),
     "hatta_inlet": lambda v: math.sqrt(v["k2"] * v["OH"] * v["D_L"]) / v["kL"],
     "k2_inlet_m3_mol_s": lambda v: (
@@ -57,8 +59,12 @@ FORMULAS = {
 
 @pytest.mark.parametrize(
     "inp",
-    [CaseInput(), CaseInput(solvent=Solvent(NaOH_M=3.0, T_in_C=30.0))],
-    ids=["base", "3M_cold"],
+    [
+        CaseInput(),
+        CaseInput(solvent=Solvent(NaOH_M=3.0, T_in_C=30.0)),
+        CaseInput(absorber=AbsorberSpec(max_diameter_m=5.0)),
+    ],
+    ids=["base", "3M_cold", "trains"],
 )
 def test_substituted_values_reproduce_each_output(inp):
     outputs = explain_case(inp, run_case(inp))

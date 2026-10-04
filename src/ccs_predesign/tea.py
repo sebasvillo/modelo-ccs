@@ -75,6 +75,7 @@ def design_costs(
     cell: CellResult,
     P_bar: float,
     tea: TEASpec,
+    n_trains: int = 1,
 ) -> dict[str, float]:
     """CAPEX, OPEX, LCOC and indirect emissions of one design (legacy cell 8).
 
@@ -87,14 +88,15 @@ def design_costs(
     captured_t_y = annual_t_from_mol_s(CO2_captured_mol_s, hours)
     t_per_h = safe_div(captured_t_y, hours)
 
-    col = column_capex(D_col_m, height_m, P_bar, tea)
+    col = column_capex(D_col_m, height_m, P_bar, tea)  # one train
     # Cell: stack + balance of plant per m2, plus the uninstalled-cost factor (errata E-015)
     stack_usd = tea.cell_stack_usd_m2 * cell.A_cell_m2 * (1.0 + tea.cell_uninstalled_factor)
     bop_usd = tea.cell_bop_usd_m2 * cell.A_cell_m2 * (1.0 + tea.cell_uninstalled_factor)
     capex_cell = stack_usd + bop_usd
     capex_blower = tea.blower_capex_usd_kW * (blower_power_W / 1000.0)
     capex_pump = tea.pump_capex_usd_kW * (pump_power_W / 1000.0)
-    capex_total = col.installed_usd + capex_cell + capex_blower + capex_pump
+    capex_column = n_trains * col.installed_usd
+    capex_total = capex_column + capex_cell + capex_blower + capex_pump
 
     # Fixed O&M on the absorber side; the cell has its own O&M and stack replacement (Zhang)
     opex_fixed = tea.fixed_om_fraction * (capex_total - capex_cell)
@@ -119,7 +121,7 @@ def design_costs(
         "CO2_product_t_y": annual_t_from_mol_s(cell.CO2_released_mol_s, hours),
         "E_cell_kWh_t": safe_div(cell.P_cell_W / 1000.0, t_per_h),
         "E_total_kWh_t": safe_div(P_total_W / 1000.0, t_per_h),
-        "capex_column_usd": col.installed_usd,
+        "capex_column_usd": capex_column,
         "capex_cell_usd": capex_cell,
         "capex_blower_usd": capex_blower,
         "capex_pump_usd": capex_pump,
@@ -168,6 +170,7 @@ def evaluate_design_point(
             cell,
             flue.P_bar,
             tea,
+            res.n_trains,
         )
         return cell, costs
 
