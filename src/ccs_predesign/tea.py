@@ -6,6 +6,7 @@ from scipy import optimize
 
 from .absorber import simulate_absorber
 from .cell import electrochemical_regeneration
+from .constants import FARADAY_C_mol
 from .models import (
     AbsorberSpec,
     CellResult,
@@ -77,7 +78,7 @@ def design_costs(
 ) -> dict[str, float]:
     """CAPEX, OPEX, LCOC and indirect emissions of one design (legacy cell 8).
 
-    Equations: tea.lcoc, tea.indirect_emissions.
+    Equations: tea.lcoc, tea.indirect_emissions, tea.cell_capex, tea.cell_opex.
     """
     hours = tea.hours_per_year
     P_total_W = blower_power_W + pump_power_W + cell.P_cell_W
@@ -87,16 +88,26 @@ def design_costs(
     t_per_h = safe_div(captured_t_y, hours)
 
     col = column_capex(D_col_m, height_m, P_bar, tea)
-    capex_cell = tea.cell_capex_usd_m2 * cell.A_cell_m2
+    # Cell: stack + balance of plant per m2, plus the uninstalled-cost factor (errata E-015)
+    stack_usd = tea.cell_stack_usd_m2 * cell.A_cell_m2 * (1.0 + tea.cell_uninstalled_factor)
+    bop_usd = tea.cell_bop_usd_m2 * cell.A_cell_m2 * (1.0 + tea.cell_uninstalled_factor)
+    capex_cell = stack_usd + bop_usd
     capex_blower = tea.blower_capex_usd_kW * (blower_power_W / 1000.0)
     capex_pump = tea.pump_capex_usd_kW * (pump_power_W / 1000.0)
     capex_total = col.installed_usd + capex_cell + capex_blower + capex_pump
 
-    opex_fixed = tea.fixed_om_fraction * capex_total
+    # Fixed O&M on the absorber side; the cell has its own O&M and stack replacement (Zhang)
+    opex_fixed = tea.fixed_om_fraction * (capex_total - capex_cell)
     opex_elec = hours * P_total_kW * tea.electricity_usd_kWh
     opex_solvent = tea.solvent_makeup_usd_t * captured_t_y
     opex_water = tea.water_chem_usd_t * captured_t_y
-    opex_total = opex_fixed + opex_elec + opex_solvent + opex_water
+    opex_stack = tea.stack_replacement_fraction * stack_usd / tea.stack_replacement_interval_y
+    opex_cell_om = tea.cell_om_fraction * stack_usd
+    h2_kg_y = cell.I_cell_A / (2.0 * FARADAY_C_mol) * 2.016e-3 * 3600.0 * hours
+    opex_h2 = tea.h2_loss_fraction * h2_kg_y * tea.h2_price_usd_kg
+    opex_total = (
+        opex_fixed + opex_elec + opex_solvent + opex_water + opex_stack + opex_cell_om + opex_h2
+    )
 
     annualized = capex_total * crf(tea.discount_rate, tea.project_life_y)
     indirect_kg_y = hours * P_total_kW * tea.grid_EF_kgCO2e_kWh
@@ -118,6 +129,9 @@ def design_costs(
         "opex_electricity_usd_y": opex_elec,
         "opex_solvent_usd_y": opex_solvent,
         "opex_water_chem_usd_y": opex_water,
+        "opex_stack_replacement_usd_y": opex_stack,
+        "opex_cell_om_usd_y": opex_cell_om,
+        "opex_h2_loss_usd_y": opex_h2,
         "opex_total_usd_y": opex_total,
         "LCOC_usd_t": safe_div(annualized + opex_total, captured_t_y),
         "indirect_kgCO2e_y": indirect_kg_y,

@@ -170,6 +170,7 @@ def test_design_costs(ns, C, LG):
         ns["P_abs_bar"],
         TEASpec(),
     )
+    # Cell CAPEX/OPEX moved to Zhang et al. (2024) in E-015; energy and tonnages are unchanged.
     pairs = {
         "P_total_W": "P_total_W",
         "CO2_captured_tpy": "CO2_captured_t_y",
@@ -177,11 +178,10 @@ def test_design_costs(ns, C, LG):
         "CO2_product_tpy": "CO2_product_t_y",
         "E_cell_kWh_tCO2": "E_cell_kWh_t",
         "E_total_kWh_tCO2": "E_total_kWh_t",
-        "capex_total_usd": "capex_total_usd",
-        "opex_total_usd_per_year": "opex_total_usd_y",
-        "annualized_capex_usd_per_year": "annualized_capex_usd_y",
-        "LCOC_usd_per_tCO2": "LCOC_usd_t",
         "indirect_kgCO2e_per_tCO2": "indirect_kgCO2e_t",
+        "capex_col_usd": "capex_column_usd",
+        "capex_blower_usd": "capex_blower_usd",
+        "capex_pump_usd": "capex_pump_usd",
     }
     for old_key, new_key in pairs.items():
         assert new[new_key] == old[old_key], old_key

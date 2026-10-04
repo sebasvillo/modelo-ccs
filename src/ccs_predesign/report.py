@@ -176,6 +176,16 @@ def explain_case(inp: CaseInput, result: CaseResult) -> tuple[ExplainedValue, ..
         ),
         ev("crf_1_y", CRF, "1/año", "tea.crf", i=tea.discount_rate, n=float(tea.project_life_y)),
         ev(
+            "cell_capex_usd",
+            k.capex_cell_usd,
+            "USD",
+            "tea.cell_capex",
+            c_stack=tea.cell_stack_usd_m2,
+            c_bop=tea.cell_bop_usd_m2,
+            A_cell=c.A_cell_m2,
+            f_u=tea.cell_uninstalled_factor,
+        ),
+        ev(
             "LCOC_usd_t",
             k.LCOC_usd_t,
             "USD/t",

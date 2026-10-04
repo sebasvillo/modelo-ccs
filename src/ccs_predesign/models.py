@@ -95,7 +95,15 @@ class TEASpec(_Frozen):
     fixed_om_fraction: float = Field(0.04, ge=0, description="fixed O&M / installed CAPEX")
     solvent_makeup_usd_t: float = Field(0.75, ge=0)
     water_chem_usd_t: float = Field(0.15, ge=0)
-    cell_capex_usd_m2: float = Field(420.0, ge=0)
+    # Electrochemical cell, Zhang et al. (2024) Supplementary Note 8 (DOE H2A PEM model, 2019).
+    cell_stack_usd_m2: float = Field(7722.0, ge=0, description="stack cost per electrode area")
+    cell_bop_usd_m2: float = Field(4914.0, ge=0, description="balance of plant per electrode area")
+    cell_uninstalled_factor: float = Field(0.12, ge=0, description="installation on top of cost")
+    stack_replacement_fraction: float = Field(0.30, ge=0, description="of the stack cost")
+    stack_replacement_interval_y: float = Field(7.0, gt=0)
+    cell_om_fraction: float = Field(0.025, ge=0, description="labour + maintenance per year")
+    h2_loss_fraction: float = Field(0.025, ge=0, description="H2 lost from the HER/HOR loop")
+    h2_price_usd_kg: float = Field(5.0, ge=0)
     blower_capex_usd_kW: float = Field(280.0, ge=0)
     pump_capex_usd_kW: float = Field(180.0, ge=0)
     shell_usd_m2: float = Field(2500.0, ge=0)
@@ -235,6 +243,9 @@ class DesignCosts(_Frozen):
     opex_electricity_usd_y: float
     opex_solvent_usd_y: float
     opex_water_chem_usd_y: float
+    opex_stack_replacement_usd_y: float
+    opex_cell_om_usd_y: float
+    opex_h2_loss_usd_y: float
     opex_total_usd_y: float
     LCOC_usd_t: float
     indirect_kgCO2e_y: float
@@ -317,6 +328,9 @@ class DesignPoint(_Frozen):
     opex_electricity_usd_y: float
     opex_solvent_usd_y: float
     opex_water_chem_usd_y: float
+    opex_stack_replacement_usd_y: float
+    opex_cell_om_usd_y: float
+    opex_h2_loss_usd_y: float
     opex_total_usd_y: float
     LCOC_usd_t: float
     indirect_kgCO2e_y: float
