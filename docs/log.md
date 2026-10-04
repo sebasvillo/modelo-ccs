@@ -61,3 +61,8 @@ Three lines per working session: what was done, what was found, what comes next.
 - API deployed on Render (render.yaml + Dockerfile), live at api.sebasvillo.com; CI builds and smoke-tests the image.
 - E-015 (#23) cell costs from Zhang et al. 2024 SI Note 8 (LCOC ≈ 450 USD/t); E-016/E-017 (#24) Billet & Schultes 1999 mass transfer and hydraulics with their packing table, recommended by Flagiello 2021; E-018 (#25) inert-gas balance with capture on molar flows; E-019 (#26) Mellapak 250Y via Hanley & Chen 2012 (original exponents, not the review's).
 - #27 docs/validation.md + tests: Mellapak area +26 % vs Ellebracht 2023, Zhang cell point < 1 %, Pall flooding in catalogue range. Next: TPMS/bench data, parallel trains, water evaporation, then the crash course.
+
+## 2026-10-04 · Session 13 · 8 m trains, website tool page, literature solvent properties
+- E-020 (#31) max 8 m per column with parallel trains (Hossain et al. 2026); #32 API summary/cost breakdown/LCOC-vs-electricity for the website; lab titration data kept as a record only (no recirculation, not used for validation).
+- #33 units in English (t/y), #34 README thesis link; E-021 (#35) NaOH density, viscosity and c_p from Laliberté 2009 and CO2 diffusivity from Versteeg & van Swaaij 1988 (base H 4.49 → 3.59 m), cross-checked against the `thermo` implementation.
+- Website: tool subpage and project post on the portfolio branch `herramienta-ccs` (needs Cloudflare connection for a preview link). Next: water evaporation in the energy balance, KOH (needs kinetics/cell sources), TPMS.

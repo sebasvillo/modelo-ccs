@@ -126,7 +126,8 @@ def simulate_absorber(
     # are neglected, so the temperature rise is an upper bound.
     T_L_in = gas.c_to_k(solv.T_in_C) if solv.T_in_C is not None else T_K
     m_L_kg_s = solvent.density_kg_m3(T_L_in, solv.NaOH_M) * Ql_m3_s
-    dT_per_mol_s = -solvent.DH_ABS_CARBONATE_J_mol / (m_L_kg_s * solvent.CP_SOLUTION_J_kgK)
+    cp_L = solvent.heat_capacity_J_kgK(T_L_in, solv.NaOH_M)
+    dT_per_mol_s = -solvent.DH_ABS_CARBONATE_J_mol / (m_L_kg_s * cp_L)
 
     def liquid(y: float, y_top: float) -> tuple[float, ...]:
         """OH-, T_L, kL, D_CO2, H_cc, y* coefficient and a_e of the liquid in contact with gas y."""
@@ -316,6 +317,10 @@ def simulate_absorber(
             f"k2 (Pohorecki & Moniuk 1988) extrapolated: liquid {T_min:.1f}–{T_max:.1f} K "
             f"outside {T_lo:g}–{T_hi:g} K"
         )
+    for T_end in sorted({T_min, T_max}):
+        for msg in solvent.property_range_warnings(T_end, solv.NaOH_M):
+            if msg not in warnings:
+                warnings.append(msg)
     if T_max > 363.15:
         warnings.append(
             f"liquid reaches {T_max - 273.15:.0f} °C: above the validity of the solubility and "

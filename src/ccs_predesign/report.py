@@ -134,7 +134,7 @@ def explain_case(inp: CaseInput, result: CaseResult) -> tuple[ExplainedValue, ..
             y=y_in,
             y_top=y_out,
             m_L=m_L,
-            cp_L=solvent.CP_SOLUTION_J_kgK,
+            cp_L=solvent.heat_capacity_J_kgK(T_in, C),
         ),
         ev(
             "pump_power_W",

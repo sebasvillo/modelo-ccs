@@ -1,35 +1,150 @@
-"""NaOH solution properties: legacy simplified correlations and CO2 solubility."""
+"""NaOH solution properties: density, viscosity, heat capacity, diffusivities, CO2 solubility."""
 
 import math
 
-from .constants import R_J_molK
+from .constants import MW_kg_mol, R_J_molK
+
+# Laliberté, M. (2009). J. Chem. Eng. Data 54, 1725–1760, Table 1, row NaOH: apparent-density
+# coefficients c0–c4 (Laliberté & Cooper 2004 model), solute-viscosity coefficients v1–v6
+# (Laliberté 2007 model) and apparent heat-capacity coefficients a1–a6.
+LALIBERTE_NAOH_C = (
+    319.020509469838,
+    528.592358475315,
+    -0.102197896602724,
+    0.000350420706415566,
+    765.970470238438,
+)
+LALIBERTE_NAOH_V = (
+    448.457566713375,
+    0.00871452408983102,
+    -431.97212334697,
+    0.0160144202049452,
+    104.011738670148,
+    4.64493684488816,
+)
+LALIBERTE_NAOH_A = (
+    -0.922780764834469,
+    -0.0412353462450485,
+    1.8722524604359,
+    -5.94223565147303,
+    3.13007617842649,
+    0.141040805508813,
+)
+# Fitted range of each correlation (Laliberté 2009, Table 1): t_min °C, t_max °C, max w.
+LALIBERTE_NAOH_VALID = {
+    "density": (4.0, 120.0, 0.5029),
+    "viscosity": (12.5, 70.0, 0.56),
+    "heat_capacity": (4.0, 120.0, 0.3035),
+}
+# Liquid water specific heat at 0.1 MPa, 20–70 °C (IAPWS-95: 4178–4190 J/(kg·K), ±0.2 %).
+CP_WATER_J_kgK = 4182.0
 
 
-def viscosity_Pa_s(T_K: float, C_NaOH_M: float) -> float:
-    """Water viscosity (Vogel-type) times a linear NaOH correction.
-
-    Equations: solvent.viscosity.
-    """
-    T_C = T_K - 273.15
-    mu_water = 2.414e-5 * 10 ** (247.8 / (T_C + 133.15))
-    return mu_water * (1.0 + 0.08 * C_NaOH_M)
-
-
-def diffusivity_CO2_m2_s(T_K: float, C_NaOH_M: float) -> float:
-    """CO2 diffusivity in the alkaline solution; decreases with NaOH concentration.
-
-    Equations: solvent.diffusivity_co2.
-    """
-    D0 = 1.9e-9 * (T_K / 298.15) ** 1.25
-    return D0 / (1.0 + 0.30 * C_NaOH_M)
+def _water_density_kg_m3(t_C: float) -> float:
+    """Pure water density, Kell (1975) form used by Laliberté & Cooper (2004)."""
+    num = (
+        (((-2.8054253e-10 * t_C + 1.0556302e-7) * t_C - 4.6170461e-5) * t_C - 0.0079870401) * t_C
+        + 16.945176
+    ) * t_C + 999.83952
+    return num / (1.0 + 0.01687985 * t_C)
 
 
-def density_kg_m3(T_K: float, C_NaOH_M: float) -> float:
-    """Approximate density of NaOH solution near 1–2 M.
+def _water_viscosity_Pa_s(t_C: float) -> float:
+    """Pure water viscosity, Laliberté (2007) eq. 9 (mPa·s converted to Pa·s)."""
+    return (t_C + 246.0) / ((0.05594 * t_C + 5.2842) * t_C + 137.37) * 1e-3
+
+
+def _density_at_mass_fraction(t_C: float, w: float) -> float:
+    c0, c1, c2, c3, c4 = LALIBERTE_NAOH_C
+    rho_app = (c0 * w + c1) * math.exp(1e-6 * (t_C + c4) ** 2) / (w + c2 + c3 * t_C)
+    return 1.0 / ((1.0 - w) / _water_density_kg_m3(t_C) + w / rho_app)
+
+
+def mass_fraction_NaOH(T_K: float, C_NaOH_M: float) -> float:
+    """NaOH mass fraction at molarity C and temperature T: w = C·M_NaOH/ρ(T, w), iterated.
 
     Equations: solvent.density.
     """
-    return 1000.0 + 24.0 * C_NaOH_M - 0.30 * (T_K - 298.15)
+    t_C = T_K - 273.15
+    c_kg_m3 = 1000.0 * C_NaOH_M * MW_kg_mol["NaOH"]
+    w = c_kg_m3 / 1000.0
+    for _ in range(50):
+        w_new = c_kg_m3 / _density_at_mass_fraction(t_C, w)
+        if abs(w_new - w) < 1e-13:
+            return w_new
+        w = w_new
+    return w
+
+
+def density_kg_m3(T_K: float, C_NaOH_M: float) -> float:
+    """NaOH solution density, Laliberté & Cooper (2004) model with Laliberté (2009) coefficients.
+
+    Equations: solvent.density.
+    """
+    return _density_at_mass_fraction(T_K - 273.15, mass_fraction_NaOH(T_K, C_NaOH_M))
+
+
+def viscosity_Pa_s(T_K: float, C_NaOH_M: float) -> float:
+    """NaOH solution viscosity, Laliberté (2007) model with Laliberté (2009) coefficients.
+
+    ln μ = w_w·ln μ_w + w·ln μ_s, μ_s = exp[(v1·w^v2 + v3)/(v4·t + 1)]/(v5·w^v6 + 1), t in °C.
+
+    Equations: solvent.viscosity.
+    """
+    t_C = T_K - 273.15
+    w = mass_fraction_NaOH(T_K, C_NaOH_M)
+    mu_w = _water_viscosity_Pa_s(t_C)
+    if w <= 0.0:
+        return mu_w
+    v1, v2, v3, v4, v5, v6 = LALIBERTE_NAOH_V
+    mu_s = math.exp((v1 * w**v2 + v3) / (v4 * t_C + 1.0)) / (v5 * w**v6 + 1.0) * 1e-3
+    return math.exp((1.0 - w) * math.log(mu_w) + w * math.log(mu_s))
+
+
+def heat_capacity_J_kgK(T_K: float, C_NaOH_M: float) -> float:
+    """NaOH solution specific heat, Laliberté (2009): c_p = w_w·c_p,w + w·c_p,app.
+
+    c_p,app = a1·exp(α) + a5·(1 − w_w)^a6, α = a2·t + a3·exp(0.01·t) + a4·(1 − w_w), kJ/(kg·K).
+
+    Equations: solvent.heat_capacity.
+    """
+    t_C = T_K - 273.15
+    w = mass_fraction_NaOH(T_K, C_NaOH_M)
+    a1, a2, a3, a4, a5, a6 = LALIBERTE_NAOH_A
+    alpha = a2 * t_C + a3 * math.exp(0.01 * t_C) + a4 * w
+    cp_app = (a1 * math.exp(alpha) + a5 * w**a6) * 1000.0
+    return (1.0 - w) * CP_WATER_J_kgK + w * cp_app
+
+
+# CO2 diffusivity in water, Versteeg & van Swaaij (1988), J. Chem. Eng. Data 33, 29–34.
+D_CO2_WATER_PREEXP_m2_s = 2.35e-6
+D_CO2_WATER_E_K = 2119.0
+# Modified Stokes–Einstein relation of the same paper: D·μ^0.8 = constant.
+D_CO2_VISCOSITY_EXPONENT = 0.8
+
+
+def diffusivity_CO2_m2_s(T_K: float, C_NaOH_M: float) -> float:
+    """CO2 diffusivity in the alkaline solution: water value corrected with D·μ^0.8 = const.
+
+    Equations: solvent.diffusivity_co2.
+    """
+    D_w = D_CO2_WATER_PREEXP_m2_s * math.exp(-D_CO2_WATER_E_K / T_K)
+    mu_ratio = _water_viscosity_Pa_s(T_K - 273.15) / viscosity_Pa_s(T_K, C_NaOH_M)
+    return D_w * mu_ratio**D_CO2_VISCOSITY_EXPONENT
+
+
+def property_range_warnings(T_K: float, C_NaOH_M: float) -> list[str]:
+    """Warnings when the Laliberté correlations are used outside their fitted range."""
+    t_C = T_K - 273.15
+    w = mass_fraction_NaOH(T_K, C_NaOH_M)
+    out = []
+    for name, (t_lo, t_hi, w_hi) in LALIBERTE_NAOH_VALID.items():
+        if not (t_lo <= t_C <= t_hi) or w > w_hi:
+            out.append(
+                f"NaOH {name} (Laliberté 2009) extrapolated: {t_C:.1f} °C, w = {w:.3f} "
+                f"outside {t_lo:g}–{t_hi:g} °C, w ≤ {w_hi:g}"
+            )
+    return out
 
 
 # CO2 solubility in pure water (Sander 2015, Atmos. Chem. Phys. 15, 4399, recommended value).
@@ -142,9 +257,6 @@ def diffusivity_NaOH_m2_s(T_K: float, C_NaOH_M: float) -> float:
 # Heat of absorption, CO2(g) + 2 OH-(aq) -> CO3--(aq) + H2O(l), from standard enthalpies of
 # formation (Wagman et al. 1982, NBS tables): −677.1 − 285.8 − (−393.5 − 2·230.0) kJ/mol.
 DH_ABS_CARBONATE_J_mol = -109.4e3
-
-# Specific heat of 1–3 M NaOH solution. Own closure: typical value, ±5 % over that range.
-CP_SOLUTION_J_kgK = 3900.0
 
 
 def surface_tension_N_m(T_K: float, C_NaOH_M: float) -> float:

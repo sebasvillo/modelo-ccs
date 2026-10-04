@@ -30,6 +30,7 @@ NOT_EQUATIONS = {
     "packing:reynolds",
     "packing:resolve_model",
     "solvent:naoh_ions_kmol_m3",
+    "solvent:property_range_warnings",
     "tea:safe_div",
     "tea:evaluate_design_point",
     "absorber:design_absorber_by_grid",

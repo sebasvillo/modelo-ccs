@@ -45,11 +45,11 @@ def test_absorption_rate_has_interior_maximum_in_NaOH():
     """Would have caught audit §3: with the 0.001 factor KGa rose monotonically with NaOH.
 
     With the real Henry constant, salting-out, viscosity and diffusivity make the rate peak
-    at intermediate concentration.
+    at intermediate concentration (near 2.5 M with the Laliberté properties, errata E-021).
     """
     KGa = {
         C: simulate_absorber(FlueGas(), Solvent(NaOH_M=C), AbsorberSpec(), 0.02).KGa_1_s
-        for C in (0.5, 1.5, 3.0)
+        for C in (0.5, 2.5, 5.0)
     }
-    assert KGa[1.5] > KGa[0.5]
-    assert KGa[1.5] > KGa[3.0]
+    assert KGa[2.5] > KGa[0.5]
+    assert KGa[2.5] > KGa[5.0]

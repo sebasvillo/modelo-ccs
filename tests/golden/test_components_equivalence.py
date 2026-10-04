@@ -15,7 +15,7 @@ import pandas as pd
 import pytest
 from legacy_cells import CELL_FIELDS, load_notebook_state
 
-from ccs_predesign import cell, gas, kinetics, solvent, tea
+from ccs_predesign import cell, gas, kinetics, tea
 from ccs_predesign.models import CellResult, CellSpec, TEASpec
 from ccs_predesign.optimize import LEGACY_WEIGHTS, weighted_scores
 
@@ -43,11 +43,8 @@ def test_gas_properties(ns, T, P):
         assert gas.dry_molar_flow_mol_s(Q) == ns["dry_mole_flows_from_Nm3h"](Q)
 
 
-@pytest.mark.parametrize(("T", "C"), list(itertools.product(T_K, NAOH_M)))
-def test_solvent_properties(ns, T, C):
-    assert solvent.viscosity_Pa_s(T, C) == ns["liquid_viscosity_Pa_s"](T, C)
-    assert solvent.diffusivity_CO2_m2_s(T, C) == ns["liquid_diffusivity_CO2_m2s"](T, C)
-    assert solvent.density_kg_m3(T, C) == ns["liquid_density_kgm3"](T, C)
+# Solvent viscosity, density and CO2 diffusivity left the legacy closures with errata E-021
+# (Laliberté 2009, Versteeg & van Swaaij 1988); see tests/test_solvent_properties.py.
 
 
 @pytest.mark.parametrize("Ha", [1e-6, 0.3, 2.0, 31.3, 49.9, 50.0, 400.0])

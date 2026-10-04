@@ -22,7 +22,8 @@ def test_liquid_energy_balance_closes(LG):
     heat_W = -solvent.DH_ABS_CARBONATE_J_mol * r.CO2_captured_mol_s
     dT = r.T_liquid_K[0] - r.T_liquid_K[-1]
     assert r.T_liquid_K[-1] == pytest.approx(r.T_K, abs=1e-9)  # lean solvent enters at gas T
-    assert dT == pytest.approx(heat_W / (m_L * solvent.CP_SOLUTION_J_kgK), rel=1e-9)
+    cp_L = solvent.heat_capacity_J_kgK(r.T_K, 1.5)
+    assert dT == pytest.approx(heat_W / (m_L * cp_L), rel=1e-9)
     assert dT > 0
 
 
