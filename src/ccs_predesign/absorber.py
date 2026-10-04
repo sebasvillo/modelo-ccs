@@ -21,9 +21,9 @@ def ntu_increment(
     """Gas-phase transfer units in a slice: dNTU = K_G·a·c_tot·dz / G''  [dimensionless].
 
     From the gas balance G''·dy/dz = −K_G·a·c_tot·(y − y*), with K_G in m/s, a in 1/m,
-    c_tot = P/(R·T) in mol/m3 and G'' the gas molar flux in mol/(m2·s). Constant G'' is assumed
-    (dilute-gas approximation). Provenance: theory (film model, e.g. Seader & Henley,
-    Separation Process Principles, ch. 6). Fixes audit §1 (errata E-001).
+    c_tot = P/(R·T) in mol/m3 and G'' the gas molar flux in mol/(m2·s). The column applies the
+    shrinking-gas factor (1 − y)²/(1 − y_in) on top of it (E-018). Provenance: theory (film
+    model, e.g. Seader & Henley, Separation Process Principles, ch. 6). Fixes audit §1 (E-001).
 
     Equations: absorber.ntu_step.
     """
@@ -64,7 +64,11 @@ def simulate_absorber(
     comp_wet = gas.wet_composition_from_dry(flue.y_CO2_dry, flue.y_O2_dry, T_K, P_Pa)
     y_in = comp_wet["CO2"]
     y_H2O = comp_wet["H2O"]
-    y_out_target = y_in * (1.0 - spec.capture_target)
+    # Capture is defined on CO2 molar flows; in the solute-free ratio Y = y/(1 − y) the inert gas
+    # flow is constant, so Y_out = Y_in·(1 − φ) (errata E-018).
+    Y_in = y_in / (1.0 - y_in)
+    Y_out_target = Y_in * (1.0 - spec.capture_target)
+    y_out_target = Y_out_target / (1.0 + Y_out_target)
 
     n_dry = gas.dry_molar_flow_mol_s(flue.Q_dry_Nm3_h)
     n_wet = n_dry / max(1.0 - y_H2O, 1e-12)
@@ -103,7 +107,17 @@ def simulate_absorber(
     capacity_mol_s = OH_mol_m3 * Ql_m3_s / OH_PER_CO2
     model = spec.mass_transfer_model  # Billet & Schultes by default (errata E-016)
     kG = packing.gas_side_kG_m_s(T_K, P_Pa, comp_wet, uG, h_L, pk, model)  # gas inlet T
-    ntu_per_KGa_m = c_tot / G_flux  # dNTU = KGa · c_tot · dz / G''
+    ntu_per_KGa_m = c_tot / G_flux  # dNTU = KGa · c_tot · dz / G''_in
+    G_inert_mol_s = G_mol_s * (1.0 - y_in)
+
+    def absorbed_mol_s(y: float, y_top: float) -> float:
+        """CO2 absorbed between the height where the gas holds y and the top (inert basis)."""
+        return G_inert_mol_s * (y / (1.0 - y) - y_top / (1.0 - y_top))
+
+    def gas_flow_factor(y: float) -> float:
+        """G''_in/G''(y)·(1 − y) = (1 − y)²/(1 − y_in): the gas shrinks as CO2 leaves (E-018)."""
+        return (1.0 - y) ** 2 / (1.0 - y_in)
+
     fresh_ions = solvent.naoh_ions_kmol_m3(solv.NaOH_M)
 
     # Adiabatic liquid energy balance over the section above z (audit §7, errata E-013):
@@ -111,12 +125,13 @@ def simulate_absorber(
     # are neglected, so the temperature rise is an upper bound.
     T_L_in = gas.c_to_k(solv.T_in_C) if solv.T_in_C is not None else T_K
     m_L_kg_s = solvent.density_kg_m3(T_L_in, solv.NaOH_M) * Ql_m3_s
-    dT_per_dy = -solvent.DH_ABS_CARBONATE_J_mol * G_mol_s / (m_L_kg_s * solvent.CP_SOLUTION_J_kgK)
+    dT_per_mol_s = -solvent.DH_ABS_CARBONATE_J_mol / (m_L_kg_s * solvent.CP_SOLUTION_J_kgK)
 
     def liquid(y: float, y_top: float) -> tuple[float, ...]:
         """OH-, T_L, kL, D_CO2, H_cc, y* coefficient and a_e of the liquid in contact with gas y."""
-        OH = OH_mol_m3 - OH_PER_CO2 * G_mol_s * (y - y_top) / Ql_m3_s
-        T_L = T_L_in + dT_per_dy * (y - y_top)
+        n_abs = absorbed_mol_s(y, y_top)
+        OH = OH_mol_m3 - OH_PER_CO2 * n_abs / Ql_m3_s
+        T_L = T_L_in + dT_per_mol_s * n_abs
         kL_T, Dl_T, a_e, _ = packing.liquid_side(T_L, solv.NaOH_M, uL, pk, model)
         H_cc_T = solvent.henry_cc_CO2(T_L, fresh_ions)
         K1, K2, Kw = solvent.carbonate_constants(T_L)
@@ -173,7 +188,7 @@ def simulate_absorber(
             if keep:
                 record(prof, z, y, st)
             KGa_loc, y_star = st[4], st[5]
-            k_m = KGa_loc * ntu_per_KGa_m  # transfer units per metre
+            k_m = KGa_loc * ntu_per_KGa_m * gas_flow_factor(y)  # transfer units per metre
             h = min(spec.dz_m, z_end - z)
             y_new = y_star + (y - y_star) * math.exp(-k_m * h)
             if y_stop is not None and y_new <= y_stop:
@@ -194,13 +209,14 @@ def simulate_absorber(
         """
         y, z, ntu = y_top, height, 0.0
         prof: dict[str, list[float]] = {k: [] for k in PROFILE_KEYS}
-        y_dry = y_top + OH_mol_m3 * Ql_m3_s / (OH_PER_CO2 * G_mol_s) * (1.0 - 1e-12)
+        Y_dry = y_top / (1.0 - y_top) + capacity_mol_s / G_inert_mol_s * (1.0 - 1e-12)
+        y_dry = Y_dry / (1.0 + Y_dry)
         while z > 1e-12:
             st = node(y, y_top)
             if keep:
                 record(prof, z, y, st)
             KGa_loc, y_star = st[4], st[5]
-            k_m = KGa_loc * ntu_per_KGa_m
+            k_m = KGa_loc * ntu_per_KGa_m * gas_flow_factor(y)
             h = min(spec.dz_m, z)
             y_new = y_star + (y - y_star) * math.exp(k_m * h)
             y_hi = min(y_new, y_dry)  # gas level at which the liquid would hold no OH- left
@@ -216,7 +232,7 @@ def simulate_absorber(
             prof = {k: v[::-1] for k, v in prof.items()}
         return y, ntu, prof
 
-    OH_bottom_design = OH_mol_m3 - OH_PER_CO2 * G_mol_s * (y_in - y_out_target) / Ql_m3_s
+    OH_bottom_design = OH_mol_m3 - OH_PER_CO2 * absorbed_mol_s(y_in, y_out_target) / Ql_m3_s
     reached = False
     if OH_bottom_design > 0.0 and node(y_in, y_out_target)[5] < y_in:
         y_end, z_end, ntu_total, reached, prof = march(
@@ -227,7 +243,8 @@ def simulate_absorber(
     else:
         # rating at the maximum height: shoot on the gas outlet so that the gas reaching the
         # bottom equals the feed (the solvent enters fresh at the top by construction)
-        y_lo = max(y_in - capacity_mol_s / G_mol_s, 0.0)
+        Y_lo = max(Y_in - capacity_mol_s / G_inert_mol_s, 0.0)
+        y_lo = Y_lo / (1.0 + Y_lo)
         H = spec.max_height_m
 
         def residual(y_top: float) -> float:
@@ -264,7 +281,10 @@ def simulate_absorber(
             )
     z_vals, y_vals = prof["z"], prof["y"]
     OH_vals = prof["OH"]
-    x_vals = [G_mol_s * (yv - y_out) / max(L_mol_s, 1e-12) for yv in y_vals]
+    x_vals = [absorbed_mol_s(yv, y_out) / max(L_mol_s, 1e-12) for yv in y_vals]
+    CO2_in = G_mol_s * y_in
+    CO2_out = G_inert_mol_s * y_out / (1.0 - y_out)
+    capture = (CO2_in - CO2_out) / CO2_in
     exhausted = OH_vals[0] <= 0.01 * OH_mol_m3
 
     warnings = list(warnings_pre)
@@ -276,7 +296,7 @@ def simulate_absorber(
     if not reached:
         warnings.append(
             f"capture target not reached within max_height_m = {spec.max_height_m:g} m "
-            f"(capture {(y_in - y_out) / y_in:.1%})"
+            f"(capture {capture:.1%})"
         )
     T_lo, T_hi = kinetics.PM_VALID_T_K
     T_min, T_max = min(prof["T"]), max(prof["T"])
@@ -290,10 +310,11 @@ def simulate_absorber(
             f"liquid reaches {T_max - 273.15:.0f} °C: above the validity of the solubility and "
             "equilibrium correlations (90 °C); raise L/G"
         )
-    if capacity_mol_s < G_mol_s * (y_in - y_out_target):
+    needed_mol_s = absorbed_mol_s(y_in, y_out_target)
+    if capacity_mol_s < needed_mol_s:
         warnings.append(
             f"stoichiometric OH- capacity ({capacity_mol_s:.4g} mol/s CO2) is below the capture "
-            f"target ({G_mol_s * (y_in - y_out_target):.4g} mol/s): raise L/G or NaOH"
+            f"target ({needed_mol_s:.4g} mol/s): raise L/G or NaOH"
         )
 
     height_m = z_end
@@ -305,9 +326,6 @@ def simulate_absorber(
     pump_head_m = height_m + spec.pump_extra_head_m
     pump_W = rho_l * G_m_s2 * pump_head_m * Ql_m3_s / max(spec.pump_eff, 1e-12)
 
-    CO2_in = G_mol_s * y_in
-    CO2_out = G_mol_s * y_out
-
     return AbsorberResult(
         LG_vol=LG_vol,
         packing_name=spec.packing_name,
@@ -317,13 +335,14 @@ def simulate_absorber(
         yCO2_wet_in=y_in,
         yCO2_out=y_out,
         yCO2_out_target=y_out_target,
-        capture_achieved=(y_in - y_out) / max(y_in, 1e-12),
+        capture_achieved=capture,
         reached_target=reached,
         Qg_actual_m3_s=Qg_m3_s,
         Ql_m3_s=Ql_m3_s,
         n_dry_mol_s=n_dry,
         n_wet_mol_s=n_wet,
         G_mol_s=G_mol_s,
+        G_inert_mol_s=G_inert_mol_s,
         G_flux_mol_m2_s=G_flux,
         c_tot_mol_m3=c_tot,
         NTU=ntu_total,
