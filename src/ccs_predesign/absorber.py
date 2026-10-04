@@ -54,10 +54,7 @@ def simulate_absorber(
         absorber.blower_power.
     """
     pk = packing.PACKINGS[spec.packing_name]
-    if spec.mass_transfer_model == "onda" and (
-        pk.kind == "structured" or pk.nominal_size_m is None
-    ):
-        raise ValueError("Onda (1968) applies to random packings with a nominal size only")
+    model = packing.resolve_model(spec.mass_transfer_model, pk)  # errata E-016, E-019
     T_K = gas.c_to_k(flue.T_C)
     P_Pa = flue.P_bar * 1e5
 
@@ -105,7 +102,6 @@ def simulate_absorber(
 
     OH_PER_CO2 = OH_PER_CO2_CARBONATE
     capacity_mol_s = OH_mol_m3 * Ql_m3_s / OH_PER_CO2
-    model = spec.mass_transfer_model  # Billet & Schultes by default (errata E-016)
     kG = packing.gas_side_kG_m_s(T_K, P_Pa, comp_wet, uG, h_L, pk, model)  # gas inlet T
     ntu_per_KGa_m = c_tot / G_flux  # dNTU = KGa · c_tot · dz / G''_in
     G_inert_mol_s = G_mol_s * (1.0 - y_in)
@@ -132,7 +128,9 @@ def simulate_absorber(
         n_abs = absorbed_mol_s(y, y_top)
         OH = OH_mol_m3 - OH_PER_CO2 * n_abs / Ql_m3_s
         T_L = T_L_in + dT_per_mol_s * n_abs
-        kL_T, Dl_T, a_e, _ = packing.liquid_side(T_L, solv.NaOH_M, uL, pk, model)
+        kL_T, Dl_T, a_e, _ = packing.liquid_side(
+            T_L, solv.NaOH_M, uL, pk, model, gas_props=(uG, rho_g, mu_g)
+        )
         H_cc_T = solvent.henry_cc_CO2(T_L, fresh_ions)
         K1, K2, Kw = solvent.carbonate_constants(T_L)
         ystar_coeff = H_cc_T * 1000.0 * Kw**2 / (K1 * K2 * c_tot)  # y* = coeff·[CO3]/[OH]²
