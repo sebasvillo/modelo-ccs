@@ -55,3 +55,16 @@ def test_overrides_reach_the_model(client):
     body = client.post("/v1/case", json={"solvent": {"NaOH_M": 3.0}}).json()
     oh = next(o for o in body["outputs"] if o["key"] == "OH_rich_mol_m3")
     assert oh["inputs"]["OH"] == pytest.approx(3000.0)
+
+
+def test_breakdown_and_sensitivity(default_case):
+    lcoc = default_case["summary"]["LCOC_usd_t"]
+    assert sum(c["usd_t"] for c in default_case["lcoc_breakdown"]) == pytest.approx(lcoc, rel=1e-9)
+    curve = default_case["lcoc_vs_electricity"]
+    prices = [p["electricity_usd_kWh"] for p in curve]
+    values = [p["LCOC_usd_t"] for p in curve]
+    assert prices == sorted(prices) and values == sorted(values)  # costlier power, costlier CO2
+    at_default = next(p for p in curve if p["electricity_usd_kWh"] == 0.12)["LCOC_usd_t"]
+    assert at_default == pytest.approx(lcoc, rel=1e-9)
+    s = default_case["summary"]
+    assert s["net_captured_t_y"] == pytest.approx(s["CO2_captured_t_y"] - s["indirect_tCO2e_y"])

@@ -10,4 +10,4 @@ services:
     healthCheckPath: /health
     envVars:
       - key: CCS_CORS_ORIGINS
-        value: https://sebasvillo.com,https://www.sebasvillo.com,http://localhost:4321
+        value: "*"  # public, stateless, read-only API: any origin (no cookies)

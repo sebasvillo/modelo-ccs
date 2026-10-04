@@ -301,6 +301,40 @@ class Profiles(_Frozen):
     KGa_1_s: tuple[float, ...]
 
 
+class CaseSummary(_Frozen):
+    """Headline design figures for display."""
+
+    packing_name: str
+    NaOH_M: float
+    LG_vol: float
+    n_trains: int
+    D_col_m: float
+    height_m: float
+    capture_fraction: float
+    CO2_captured_t_y: float
+    indirect_tCO2e_y: float
+    net_captured_t_y: float = Field(
+        description="captured minus grid emissions of the electricity used"
+    )
+    E_total_kWh_t: float
+    A_cell_m2: float
+    P_total_MW: float
+    T_rich_C: float
+    LCOC_usd_t: float
+    capex_total_usd: float
+    opex_total_usd_y: float
+
+
+class CostShare(_Frozen):
+    key: str
+    usd_t: float = Field(description="contribution to the LCOC [USD per t captured]")
+
+
+class SensitivityPoint(_Frozen):
+    electricity_usd_kWh: float
+    LCOC_usd_t: float
+
+
 class CaseResponse(_Frozen):
     """What the API returns for one case (CLAUDE.md rule 9)."""
 
@@ -308,6 +342,9 @@ class CaseResponse(_Frozen):
     errata_id: str
     feasible: bool
     warnings: tuple[str, ...]
+    summary: CaseSummary
+    lcoc_breakdown: tuple[CostShare, ...] = Field(description="sums to the LCOC")
+    lcoc_vs_electricity: tuple[SensitivityPoint, ...]
     outputs: tuple[ExplainedValue, ...]
     profiles: Profiles
 
