@@ -1,218 +1,227 @@
-"""Packing database plus mass-transfer and hydraulic correlations.
+"""Packings: Billet & Schultes (1999) database, hydraulics and mass transfer.
 
-Random packings use Onda, Takeuchi & Okumoto (1968) for kG, kL and the wetted area
-(errata E-014). Structured packings and the hydraulics (flooding, pressure drop) still use the
-legacy forms, flagged in the absorber warnings.
+Billet & Schultes, Trans IChemE 77A (1999) 498–504, is the default method: it is the most reliable
+general model according to the most recent review in the bibliography (Flagiello et al. 2021,
+ChemEngineering 5, 43). Onda et al. (1968) is kept as an alternative mass-transfer model for
+comparison (errata E-016, E-017).
 """
 
 import math
+from typing import Literal
 
-import numpy as np
+from scipy import optimize
 
 from . import gas, solvent
 from .constants import G_m_s2
 from .models import Packing
 
-# Critical surface tension of packing materials (Onda et al. 1968): steel 0.075, ceramic 0.061,
-# carbon 0.056, PVC 0.040, polyethylene 0.033 N/m. The legacy database does not state the
-# material; metal (steel) is assumed for the random packings.
-SIGMA_C_STEEL_N_m = 0.075
+# Critical surface tension of packing materials for Onda (1968) [N/m].
+SIGMA_C_N_m = {"metal": 0.075, "ceramic": 0.061, "plastic": 0.033}
 
+# Billet & Schultes (1999) Table 2a (dumped) and 2b (regular): a [m2/m3], ε, C_S, C_Fl, C_P0,
+# C_L, C_V. Only packings with the full set of constants are listed.
 PACKINGS: dict[str, Packing] = {
-    "raschig_metal_25mm": Packing(
-        a_spec_m2_m3=200.0,
-        void_fraction=0.94,
-        dp_eq_m=0.025,
-        wetting_ref_uL_m_s=0.003,
-        flood_coeff=0.42,
-        sigma_c_N_m=SIGMA_C_STEEL_N_m,
+    "pall_ring_metal_25mm": Packing(
+        kind="random", material="metal", nominal_size_m=0.025, a_spec_m2_m3=223.5,
+        void_fraction=0.954, C_S=2.627, C_Fl=2.083, C_P0=0.957, C_L=1.440, C_V=0.336,
     ),
-    "pall_ring_25mm": Packing(
-        a_spec_m2_m3=210.0,
-        void_fraction=0.92,
-        dp_eq_m=0.025,
-        wetting_ref_uL_m_s=0.003,
-        flood_coeff=0.45,
-        sigma_c_N_m=SIGMA_C_STEEL_N_m,
+    "pall_ring_metal_50mm": Packing(
+        kind="random", material="metal", nominal_size_m=0.050, a_spec_m2_m3=112.6,
+        void_fraction=0.951, C_S=2.725, C_Fl=1.580, C_P0=0.763, C_L=1.192, C_V=0.410,
     ),
-    "structured_250Y": Packing(
-        a_spec_m2_m3=250.0,
-        void_fraction=0.97,
-        dp_eq_m=0.008,
-        wetting_ref_uL_m_s=0.0015,
-        flood_coeff=0.60,
-        kind="structured",
+    "raschig_super_ring_metal_no1": Packing(
+        kind="random", material="metal", nominal_size_m=0.025, a_spec_m2_m3=160.0,
+        void_fraction=0.980, C_S=3.491, C_Fl=2.200, C_P0=0.500, C_L=1.290, C_V=0.440,
     ),
-    "random_high_capacity": Packing(
-        a_spec_m2_m3=160.0,
-        void_fraction=0.95,
-        dp_eq_m=0.035,
-        wetting_ref_uL_m_s=0.004,
-        flood_coeff=0.40,
-        sigma_c_N_m=SIGMA_C_STEEL_N_m,
+    "hiflow_ring_metal_50mm": Packing(
+        kind="random", material="metal", nominal_size_m=0.050, a_spec_m2_m3=92.3,
+        void_fraction=0.977, C_S=2.702, C_Fl=1.626, C_P0=0.421, C_L=1.168, C_V=0.408,
     ),
-}
+    "raschig_ring_ceramic_25mm": Packing(
+        kind="random", material="ceramic", nominal_size_m=0.025, a_spec_m2_m3=190.0,
+        void_fraction=0.680, C_S=2.454, C_Fl=1.899, C_P0=1.329, C_L=1.361, C_V=0.412,
+    ),
+    "ralu_pak_metal_yc250": Packing(
+        kind="structured", material="metal", nominal_size_m=None, a_spec_m2_m3=250.0,
+        void_fraction=0.945, C_S=3.178, C_Fl=2.558, C_P0=0.191, C_L=1.334, C_V=0.385,
+    ),
+}  # fmt: skip
+
+# Ranges of the Billet & Schultes database (their Table 1).
+BS_MASS_TRANSFER_F_MAX = 2.77  # Pa^0.5
+BS_MASS_TRANSFER_UL_RANGE_m3_m2h = (0.256, 118.0)
 
 
-def reynolds(rho_kg_m3: float, u_m_s: float, d_m: float, mu_Pa_s: float) -> float:
-    return rho_kg_m3 * u_m_s * d_m / max(mu_Pa_s, 1e-12)
+def hydraulic_diameter_m(packing: Packing) -> float:
+    """d_h = 4ε/a. Equations: packing.bs_holdup."""
+    return 4.0 * packing.void_fraction / packing.a_spec_m2_m3
 
 
-def schmidt(mu_Pa_s: float, rho_kg_m3: float, D_m2_s: float) -> float:
-    return mu_Pa_s / max(rho_kg_m3 * D_m2_s, 1e-18)
+def bs_holdup_below_loading(uL_m_s: float, rho_l: float, mu_l: float, packing: Packing) -> float:
+    """Liquid holdup below the loading point, h_L = (12·η_L·u_L·a²/(g·ρ_L))^(1/3) (BS eq. 11).
 
-
-def sherwood_gas(Re: float, Sc: float) -> float:
-    """LEGACY(audit §9): Ranz–Marshall/Wakao particle form, cited in the thesis as Onda.
-
-    Equations: packing.sherwood_particle.
+    Equations: packing.bs_holdup.
     """
-    return 2.0 + 1.10 * (Re**0.70) * (Sc ** (1.0 / 3.0))
+    return (12.0 * mu_l * uL_m_s * packing.a_spec_m2_m3**2 / (G_m_s2 * rho_l)) ** (1.0 / 3.0)
 
 
-def sherwood_liquid(Re: float, Sc: float) -> float:
-    """LEGACY(audit §9): same particle form as sherwood_gas, exponent 0.60.
-
-    Equations: packing.sherwood_particle.
-    """
-    return 2.0 + 1.10 * (Re**0.60) * (Sc ** (1.0 / 3.0))
+def _flow_parameter(LV_mass: float, rho_g: float, rho_l: float) -> float:
+    return LV_mass * math.sqrt(rho_g / rho_l)
 
 
-def wetting_fraction(uL_m_s: float, packing: Packing) -> float:
-    """LEGACY(audit §9): exponential own closure, not Onda's wetting correlation.
-
-    Equations: packing.wetting_legacy.
-    """
-    u_ref = packing.wetting_ref_uL_m_s
-    return float(np.clip(0.20 + 0.80 * (1.0 - np.exp(-uL_m_s / max(u_ref, 1e-9))), 0.20, 1.0))
-
-
-def liquid_film_kL(
-    T_K: float, C_NaOH_M: float, uL_m_s: float, packing: Packing
+def bs_flooding(
+    LV_mass: float, rho_g: float, mu_g: float, rho_l: float, mu_l: float, packing: Packing
 ) -> tuple[float, float]:
-    """Liquid-film coefficient kL [m/s] and CO2 diffusivity D_l [m2/s] at the liquid temperature.
+    """Gas velocity and liquid holdup at the flooding point (BS eqs. 13 and 36–40).
 
-    Same correlation as mass_transfer_coefficients, evaluated on its own so the absorber can
-    follow the local liquid temperature (errata E-013).
+    u_V,Fl = √2·√(g/ψ_Fl)·(ε − h_Fl)^1.5/ε^0.5·√(h_Fl/a)·√(ρ_L/ρ_V), with ψ_Fl from the flow
+    parameter and h_Fl from h³(3h − ε) = 6/g·a²·ε·(η_L/ρ_L)·(L/V)·(ρ_V/ρ_L)·u_V,Fl.
 
-    Equations: packing.sherwood_particle.
+    Equations: packing.bs_flooding.
     """
-    rho_l = solvent.density_kg_m3(T_K, C_NaOH_M)
-    mu_l = solvent.viscosity_Pa_s(T_K, C_NaOH_M)
-    Dl = solvent.diffusivity_CO2_m2_s(T_K, C_NaOH_M)
-    d_h = 4.0 * packing.void_fraction / max(packing.a_spec_m2_m3, 1e-12)
-    ReL = reynolds(rho_l, max(uL_m_s, 1e-12), d_h, mu_l)
-    ScL = schmidt(mu_l, rho_l, Dl)
-    return sherwood_liquid(ReL, ScL) * Dl / d_h, Dl
+    eps, a = packing.void_fraction, packing.a_spec_m2_m3
+    X = _flow_parameter(LV_mass, rho_g, rho_l)
+    if X <= 0.4:
+        n_fl, C_fl = -0.194, packing.C_Fl
+    else:
+        n_fl, C_fl = -0.708, 0.6244 * packing.C_Fl * (mu_l / mu_g) ** 0.1028
+    psi_fl = G_m_s2 / C_fl**2 * (X * (mu_l / mu_g) ** 0.2) ** (-2.0 * n_fl)
+    R = 6.0 / G_m_s2 * a**2 * eps * (mu_l / rho_l) * LV_mass * (rho_g / rho_l)
+
+    def holdup(u: float) -> float:
+        rhs = R * u
+        if rhs >= 2.0 * eps**4:
+            return eps
+        return optimize.brentq(lambda h: h**3 * (3.0 * h - eps) - rhs, eps / 3.0, eps)
+
+    def velocity(h: float) -> float:
+        return (
+            math.sqrt(2.0 * G_m_s2 / psi_fl)
+            * (eps - h) ** 1.5
+            / math.sqrt(eps)
+            * math.sqrt(h / a)
+            * math.sqrt(rho_l / rho_g)
+        )
+
+    u_hi = velocity(eps / 3.0)
+    u_fl = optimize.brentq(lambda u: u - velocity(holdup(u)), 1e-9 * u_hi, u_hi, xtol=1e-12)
+    return u_fl, holdup(u_fl)
 
 
-def mass_transfer_coefficients(
-    T_K: float,
-    P_Pa: float,
-    comp_gas: dict[str, float],
+def bs_loading_velocity(
+    LV_mass: float, rho_g: float, mu_g: float, rho_l: float, mu_l: float, packing: Packing
+) -> float:
+    """Gas velocity at the loading point (BS eqs. 31–35). Equations: packing.bs_loading."""
+    eps, a = packing.void_fraction, packing.a_spec_m2_m3
+    X = _flow_parameter(LV_mass, rho_g, rho_l)
+    if X <= 0.4:
+        n_s, C_s = -0.326, packing.C_S
+    else:
+        n_s, C_s = -0.723, 0.695 * packing.C_S * (mu_l / mu_g) ** 0.1588
+    psi_s = G_m_s2 / C_s**2 * (X * (mu_l / mu_g) ** 0.4) ** (-2.0 * n_s)
+
+    def velocity(u_vs: float) -> float:
+        u_ls = rho_g / rho_l * LV_mass * u_vs
+        film = 12.0 / G_m_s2 * mu_l / rho_l * u_ls
+        return (
+            math.sqrt(G_m_s2 / psi_s)
+            * (eps / a ** (1.0 / 6.0) - math.sqrt(a) * film ** (1.0 / 3.0))
+            * film ** (1.0 / 6.0)
+            * math.sqrt(rho_l / rho_g)
+        )
+
+    return optimize.brentq(lambda u: u - velocity(u), 1e-9, 50.0, xtol=1e-12)
+
+
+def bs_holdup(uG_m_s: float, u_flood_m_s: float, h_L_S: float, h_L_Fl: float) -> float:
+    """Holdup between loading and flooding, h_L = h_S + (h_Fl − h_S)·(u_V/u_V,Fl)^13 (BS eq. 12).
+
+    Below the loading point the second term is negligible. Equations: packing.bs_holdup.
+    """
+    return h_L_S + (h_L_Fl - h_L_S) * (uG_m_s / u_flood_m_s) ** 13
+
+
+def bs_pressure_drop_Pa_m(
     uG_m_s: float,
     uL_m_s: float,
+    rho_g: float,
+    mu_g: float,
+    h_L: float,
+    h_L_S: float,
+    D_col_m: float,
     packing: Packing,
-    C_NaOH_M: float,
-    henry_cc: float,
-    E: float = 1.0,
-) -> dict[str, float]:
-    """Film model: kG, kL and the overall volumetric coefficient KGa [1/s].
+) -> float:
+    """Irrigated pressure drop Δp/H = ψ_L·a/(ε − h_L)³·F_V²/2·1/K (BS eqs. 23–30).
 
-    uG_m_s and uL_m_s are superficial velocities in the actual column (audit §2, E-002).
-    Overall gas-side coefficient 1/K_G = 1/k_G + H_cc/(E·k_L), with H_cc = c_G/c_L the
-    dimensionless Henry constant (two-film theory; audit §3, errata E-003).
-
-    Equations: absorber.two_film.
+    Equations: packing.bs_pressure_drop.
     """
-    rho_g = gas.density_ideal_kg_m3(T_K, P_Pa, comp_gas)
-    mu_g = gas.viscosity_sutherland_air_Pa_s(T_K)
-    rho_l = solvent.density_kg_m3(T_K, C_NaOH_M)
-    mu_l = solvent.viscosity_Pa_s(T_K, C_NaOH_M)
-    Dg = gas.diffusivity_CO2_in_air_m2_s(T_K, P_Pa)
-    Dl = solvent.diffusivity_CO2_m2_s(T_K, C_NaOH_M)
-
-    eps = packing.void_fraction
-    a_spec = packing.a_spec_m2_m3
-    d_h = 4.0 * eps / max(a_spec, 1e-12)
-
-    uG = uG_m_s
-    uL = max(uL_m_s, 1e-12)
-
-    ReG = reynolds(rho_g, uG, d_h, mu_g)
-    ReL = reynolds(rho_l, uL, d_h, mu_l)
-    ScG = schmidt(mu_g, rho_g, Dg)
-    ScL = schmidt(mu_l, rho_l, Dl)
-    ShG = sherwood_gas(ReG, ScG)
-    ShL = sherwood_liquid(ReL, ScL)
-    kG = ShG * Dg / d_h
-    kL = ShL * Dl / d_h
-
-    wet = wetting_fraction(uL, packing)
-    a_eff = a_spec * wet
-
-    KG = 1.0 / (1.0 / max(kG, 1e-12) + henry_cc / max(kL * E, 1e-12))
-    KGa = KG * a_eff
-
-    return {
-        "rho_g": rho_g,
-        "mu_g": mu_g,
-        "rho_l": rho_l,
-        "mu_l": mu_l,
-        "Dg": Dg,
-        "Dl": Dl,
-        "d_h": d_h,
-        "uG": uG,
-        "uL": uL,
-        "ReG": ReG,
-        "ReL": ReL,
-        "ScG": ScG,
-        "ScL": ScL,
-        "ShG": ShG,
-        "ShL": ShL,
-        "kG": kG,
-        "kL": kL,
-        "a_eff": a_eff,
-        "wet": wet,
-        "KG": KG,
-        "KGa": KGa,
-    }
-
-
-def pressure_drop_ergun_Pa_m(rho_g: float, mu_g: float, uG_m_s: float, packing: Packing) -> float:
-    """LEGACY(audit §9): Ergun is for particle beds, also applied to structured packings.
-
-    Equations: packing.ergun.
-    """
-    eps = packing.void_fraction
-    dp = packing.dp_eq_m
-    term1 = 150.0 * (1.0 - eps) ** 2 * mu_g * uG_m_s / max((eps**3) * dp**2, 1e-18)
-    term2 = 1.75 * (1.0 - eps) * rho_g * uG_m_s**2 / max((eps**3) * dp, 1e-18)
-    return term1 + term2
-
-
-def flooding_velocity_m_s(rho_g: float, rho_l: float, packing: Packing) -> float:
-    """Equations: packing.flooding_legacy."""
-    eps = packing.void_fraction
-    dp = packing.dp_eq_m
-    C = packing.flood_coeff
-    return (
-        C * math.sqrt(max((rho_l - rho_g), 1e-12) * G_m_s2 * dp / max(rho_g, 1e-12)) * (eps**0.15)
+    eps, a = packing.void_fraction, packing.a_spec_m2_m3
+    d_p = 6.0 * (1.0 - eps) / a
+    K = 1.0 / (1.0 + 2.0 / 3.0 / (1.0 - eps) * d_p / D_col_m)
+    Re_V = uG_m_s * d_p / ((1.0 - eps) * mu_g / rho_g) * K
+    Fr_L = uL_m_s**2 * a / G_m_s2
+    C1 = 13300.0 / a**1.5
+    psi_L = (
+        packing.C_P0
+        * (64.0 / Re_V + 1.8 / Re_V**0.08)
+        * ((eps - h_L) / eps) ** 1.5
+        * (h_L / h_L_S) ** 0.3
+        * math.exp(C1 * math.sqrt(Fr_L))
     )
+    F_V = uG_m_s * math.sqrt(rho_g)
+    return psi_L * a / (eps - h_L) ** 3 * F_V**2 / 2.0 / K
 
 
-def column_diameter_m(
-    Qg_m3_s: float, rho_g: float, rho_l: float, packing: Packing, flood_frac: float
-) -> tuple[float, float, float]:
-    """Diameter from a fraction of the flooding velocity. Returns (D, v_flood, v_oper).
+def column_diameter_m(Qg_m3_s: float, u_flood_m_s: float, flood_frac: float) -> float:
+    """D from operating at a fraction of the flooding velocity.
 
     Equations: packing.column_diameter.
     """
-    v_flood = flooding_velocity_m_s(rho_g, rho_l, packing)
-    v_oper = max(0.05, flood_frac * v_flood)
-    A = Qg_m3_s / v_oper
-    D = math.sqrt(4.0 * A / math.pi)
-    return D, v_flood, v_oper
+    return math.sqrt(4.0 * Qg_m3_s / (flood_frac * u_flood_m_s) / math.pi)
+
+
+def bs_wetted_area_m2_m3(
+    uL_m_s: float, rho_l: float, mu_l: float, sigma_l: float, packing: Packing
+) -> float:
+    """a_Ph/a = 1.5 (a·d_h)^−0.5 Re_L^−0.2 We_L^0.75 Fr_L^−0.45 below loading (BS eq. 9).
+
+    σ_L is floored at 0.03 N/m as Billet & Schultes recommend. Equations: packing.bs_area.
+    """
+    a = packing.a_spec_m2_m3
+    d_h = hydraulic_diameter_m(packing)
+    sigma = max(sigma_l, 0.03)
+    Re = uL_m_s * d_h * rho_l / mu_l
+    We = uL_m_s**2 * rho_l * d_h / sigma
+    Fr = uL_m_s**2 / (G_m_s2 * d_h)
+    return a * 1.5 * (a * d_h) ** -0.5 * Re**-0.2 * We**0.75 * Fr**-0.45
+
+
+def bs_kL_m_s(uL_m_s: float, h_L: float, D_l: float, packing: Packing) -> float:
+    """β_L = C_L·12^(1/6)·(ū_L·D_L/d_h)^(1/2), ū_L = u_L/h_L (BS eqs. 6–7).
+
+    Equations: packing.bs_kl.
+    """
+    d_h = hydraulic_diameter_m(packing)
+    return packing.C_L * 12.0 ** (1.0 / 6.0) * math.sqrt(uL_m_s / h_L * D_l / d_h)
+
+
+def bs_kG_m_s(
+    uG_m_s: float, h_L: float, rho_g: float, mu_g: float, D_g: float, packing: Packing
+) -> float:
+    """β_V = C_V·(ε − h_L)^−½·(a/d_h)^½·D_V·(u_V/(a·ν_V))^¾·(ν_V/D_V)^⅓ (BS eq. 8).
+
+    Equations: packing.bs_kg.
+    """
+    a = packing.a_spec_m2_m3
+    nu_g = mu_g / rho_g
+    return (
+        packing.C_V
+        / math.sqrt(packing.void_fraction - h_L)
+        * math.sqrt(a / hydraulic_diameter_m(packing))
+        * D_g
+        * (uG_m_s / (a * nu_g)) ** 0.75
+        * (nu_g / D_g) ** (1.0 / 3.0)
+    )
 
 
 def onda_wetted_area_m2_m3(
@@ -226,10 +235,11 @@ def onda_wetted_area_m2_m3(
     Equations: packing.onda_wetted_area.
     """
     a = packing.a_spec_m2_m3
+    sigma_c = SIGMA_C_N_m[packing.material]
     Re = L_kg_m2s / (a * mu_l)
     Fr = L_kg_m2s**2 * a / (rho_l**2 * G_m_s2)
     We = L_kg_m2s**2 / (rho_l * sigma_l * a)
-    x = 1.45 * (packing.sigma_c_N_m / sigma_l) ** 0.75 * Re**0.1 * Fr**-0.05 * We**0.2
+    x = 1.45 * (sigma_c / sigma_l) ** 0.75 * Re**0.1 * Fr**-0.05 * We**0.2
     return a * (1.0 - math.exp(-x))
 
 
@@ -242,9 +252,8 @@ def onda_kL_m_s(
     """
     Sc = mu_l / (rho_l * D_l)
     group = 0.0051 * (L_kg_m2s / (a_w * mu_l)) ** (2.0 / 3.0) * Sc**-0.5
-    return (
-        group * (packing.a_spec_m2_m3 * packing.dp_eq_m) ** 0.4 * (mu_l * G_m_s2 / rho_l) ** (1 / 3)
-    )
+    ad = packing.a_spec_m2_m3 * packing.nominal_size_m
+    return group * ad**0.4 * (mu_l * G_m_s2 / rho_l) ** (1 / 3)
 
 
 def onda_kG_m_s(G_kg_m2s: float, rho_g: float, mu_g: float, D_g: float, packing: Packing) -> float:
@@ -255,47 +264,56 @@ def onda_kG_m_s(G_kg_m2s: float, rho_g: float, mu_g: float, D_g: float, packing:
     Equations: packing.onda_kg.
     """
     a = packing.a_spec_m2_m3
-    C = 5.23 if packing.dp_eq_m >= 0.015 else 2.00
+    dp = packing.nominal_size_m
+    C = 5.23 if dp >= 0.015 else 2.00
     Sc = mu_g / (rho_g * D_g)
-    return (
-        C * a * D_g * (G_kg_m2s / (a * mu_g)) ** 0.7 * Sc ** (1 / 3) * (a * packing.dp_eq_m) ** -2.0
-    )
+    return C * a * D_g * (G_kg_m2s / (a * mu_g)) ** 0.7 * Sc ** (1 / 3) * (a * dp) ** -2.0
+
+
+MassTransferModel = Literal["billet_schultes", "onda"]
 
 
 def gas_side_kG_m_s(
-    T_K: float, P_Pa: float, comp_gas: dict[str, float], uG_m_s: float, packing: Packing
+    T_K: float,
+    P_Pa: float,
+    comp_gas: dict[str, float],
+    uG_m_s: float,
+    h_L: float,
+    packing: Packing,
+    model: MassTransferModel = "billet_schultes",
 ) -> float:
-    """Gas-film coefficient: Onda for random packings, legacy particle form for structured.
+    """Gas-film coefficient at the gas conditions.
 
-    Equations: packing.onda_kg.
+    Equations: packing.bs_kg, packing.onda_kg.
     """
     rho_g = gas.density_ideal_kg_m3(T_K, P_Pa, comp_gas)
     mu_g = gas.viscosity_sutherland_air_Pa_s(T_K)
     Dg = gas.diffusivity_CO2_in_air_m2_s(T_K, P_Pa)
-    if packing.kind == "random" and packing.sigma_c_N_m is not None:
+    if model == "onda":
         return onda_kG_m_s(rho_g * uG_m_s, rho_g, mu_g, Dg, packing)
-    d_h = 4.0 * packing.void_fraction / max(packing.a_spec_m2_m3, 1e-12)
-    ShG = sherwood_gas(reynolds(rho_g, uG_m_s, d_h, mu_g), schmidt(mu_g, rho_g, Dg))
-    return ShG * Dg / d_h
+    return bs_kG_m_s(uG_m_s, h_L, rho_g, mu_g, Dg, packing)
 
 
 def liquid_side(
-    T_K: float, C_NaOH_M: float, uL_m_s: float, packing: Packing
-) -> tuple[float, float, float]:
-    """kL [m/s], CO2 diffusivity D_l [m2/s] and interfacial area a_e [m2/m3] at the liquid T.
+    T_K: float,
+    C_NaOH_M: float,
+    uL_m_s: float,
+    packing: Packing,
+    model: MassTransferModel = "billet_schultes",
+) -> tuple[float, float, float, float]:
+    """kL [m/s], CO2 diffusivity D_l [m2/s], interfacial area a_e [m2/m3] and holdup h_L at T.
 
-    Random packings: Onda (1968) wetted area and kL. Structured: legacy closures (flagged).
-
-    Equations: packing.onda_wetted_area, packing.onda_kl.
+    Equations: packing.bs_kl, packing.bs_area, packing.bs_holdup, packing.onda_kl,
+    packing.onda_wetted_area.
     """
-    if packing.kind == "random" and packing.sigma_c_N_m is not None:
-        rho_l = solvent.density_kg_m3(T_K, C_NaOH_M)
-        mu_l = solvent.viscosity_Pa_s(T_K, C_NaOH_M)
-        D_l = solvent.diffusivity_CO2_m2_s(T_K, C_NaOH_M)
-        L = rho_l * max(uL_m_s, 1e-12)
-        a_w = onda_wetted_area_m2_m3(
-            L, rho_l, mu_l, solvent.surface_tension_N_m(T_K, C_NaOH_M), packing
-        )
-        return onda_kL_m_s(L, a_w, rho_l, mu_l, D_l, packing), D_l, a_w
-    kL, D_l = liquid_film_kL(T_K, C_NaOH_M, uL_m_s, packing)
-    return kL, D_l, packing.a_spec_m2_m3 * wetting_fraction(max(uL_m_s, 1e-12), packing)
+    rho_l = solvent.density_kg_m3(T_K, C_NaOH_M)
+    mu_l = solvent.viscosity_Pa_s(T_K, C_NaOH_M)
+    D_l = solvent.diffusivity_CO2_m2_s(T_K, C_NaOH_M)
+    sigma = solvent.surface_tension_N_m(T_K, C_NaOH_M)
+    h_L = bs_holdup_below_loading(uL_m_s, rho_l, mu_l, packing)
+    if model == "onda":
+        L = rho_l * uL_m_s
+        a_w = onda_wetted_area_m2_m3(L, rho_l, mu_l, sigma, packing)
+        return onda_kL_m_s(L, a_w, rho_l, mu_l, D_l, packing), D_l, a_w, h_L
+    a_e = bs_wetted_area_m2_m3(uL_m_s, rho_l, mu_l, sigma, packing)
+    return bs_kL_m_s(uL_m_s, h_L, D_l, packing), D_l, a_e, h_L

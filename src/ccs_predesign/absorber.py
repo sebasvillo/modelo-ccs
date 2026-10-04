@@ -14,9 +14,6 @@ logger = logging.getLogger(__name__)
 # Carbonate route CO2 + 2 OH- -> CO3-- + H2O, the only absorption route modelled.
 OH_PER_CO2_CARBONATE = 2.0
 
-# Typical upper F-factor (uG·√ρG) of random packings; Kister (1992), Distillation Design.
-RANDOM_PACKING_F_MAX = 3.0
-
 
 def ntu_increment(
     KGa_1_s: float, c_tot_mol_m3: float, G_flux_mol_m2_s: float, dz_m: float
@@ -57,6 +54,10 @@ def simulate_absorber(
         absorber.blower_power.
     """
     pk = packing.PACKINGS[spec.packing_name]
+    if spec.mass_transfer_model == "onda" and (
+        pk.kind == "structured" or pk.nominal_size_m is None
+    ):
+        raise ValueError("Onda (1968) applies to random packings with a nominal size only")
     T_K = gas.c_to_k(flue.T_C)
     P_Pa = flue.P_bar * 1e5
 
@@ -72,51 +73,36 @@ def simulate_absorber(
 
     Ql_m3_s = LG_vol * Qg_m3_s
     rho_l = solvent.density_kg_m3(T_K, solv.NaOH_M)
+    mu_l = solvent.viscosity_Pa_s(T_K, solv.NaOH_M)
+    mu_g = gas.viscosity_sutherland_air_Pa_s(T_K)
+
+    # Billet & Schultes (1999) hydraulics at the gas inlet (errata E-017)
+    LV_mass = LG_vol * rho_l / rho_g
+    v_flood, h_L_Fl = packing.bs_flooding(LV_mass, rho_g, mu_g, rho_l, mu_l, pk)
+    v_loading = packing.bs_loading_velocity(LV_mass, rho_g, mu_g, rho_l, mu_l, pk)
     if D_col_fixed_m is None:
-        D_col, v_flood, v_oper = packing.column_diameter_m(
-            Qg_m3_s, rho_g, rho_l, pk, flood_frac=spec.flood_fraction
-        )
+        D_col = packing.column_diameter_m(Qg_m3_s, v_flood, spec.flood_fraction)
     else:
         D_col = float(D_col_fixed_m)
-        v_flood = packing.flooding_velocity_m_s(rho_g, rho_l, pk)
-        v_oper = Qg_m3_s / max(math.pi * D_col**2 / 4.0, 1e-12)
     A_col = math.pi * D_col**2 / 4.0
     uG = Qg_m3_s / A_col
     uL = Ql_m3_s / A_col
+    v_oper = uG
+    h_L_S = packing.bs_holdup_below_loading(uL, rho_l, mu_l, pk)
+    h_L = packing.bs_holdup(uG, v_flood, h_L_S, h_L_Fl) if uG < v_flood else h_L_Fl
 
     OH_mol_m3 = solv.NaOH_M * 1000.0
-
-    def k2_local(OH: float) -> float:
-        """k2 at the local ionic strength I = ½Σc·z² = ½(3C − [OH-]) with Na+, OH-, CO3--."""
-        I_kmol_m3 = 0.5 * (3.0 * solv.NaOH_M - OH / 1000.0)
-        return kinetics.k2_pohorecki_moniuk_m3_mol_s(T_K, I_kmol_m3)
-
-    k1_pseudo = k2_local(OH_mol_m3) * OH_mol_m3
-
-    H_cc = solvent.henry_cc_CO2(T_K, solvent.naoh_ions_kmol_m3(solv.NaOH_M))
-
-    def coefficients(E: float) -> dict[str, float]:
-        return packing.mass_transfer_coefficients(
-            T_K, P_Pa, comp_wet, uG, uL, pk, solv.NaOH_M,
-            H_cc, E=E,
-        )  # fmt: skip
-
-    props0 = coefficients(1.0)
-    Ha = kinetics.hatta_number(k1_pseudo, props0["Dl"], props0["kL"])
-    E = kinetics.enhancement_factor(Ha)
-    props = coefficients(E)
-    KGa = props["KGa"]  # at the liquid inlet (fresh solvent)
-
     L_mol_s = rho_l * Ql_m3_s / MW_kg_mol["water"]  # LEGACY: water-proxy molar mass
     G_mol_s = n_wet
 
     c_tot = P_Pa / (R_J_molK * T_K)
     G_flux = G_mol_s / A_col
-    logger.debug("KGa_in=%.3f 1/s | G''=%.3e mol/m2/s", KGa, G_flux)
+    logger.debug("u_G=%.3f m/s (flood %.3f) | G''=%.3e mol/m2/s", uG, v_flood, G_flux)
 
     OH_PER_CO2 = OH_PER_CO2_CARBONATE
     capacity_mol_s = OH_mol_m3 * Ql_m3_s / OH_PER_CO2
-    kG = packing.gas_side_kG_m_s(T_K, P_Pa, comp_wet, uG, pk)  # gas side at the gas inlet T
+    model = spec.mass_transfer_model  # Billet & Schultes by default (errata E-016)
+    kG = packing.gas_side_kG_m_s(T_K, P_Pa, comp_wet, uG, h_L, pk, model)  # gas inlet T
     ntu_per_KGa_m = c_tot / G_flux  # dNTU = KGa · c_tot · dz / G''
     fresh_ions = solvent.naoh_ions_kmol_m3(solv.NaOH_M)
 
@@ -131,7 +117,7 @@ def simulate_absorber(
         """OH-, T_L, kL, D_CO2, H_cc, y* coefficient and a_e of the liquid in contact with gas y."""
         OH = OH_mol_m3 - OH_PER_CO2 * G_mol_s * (y - y_top) / Ql_m3_s
         T_L = T_L_in + dT_per_dy * (y - y_top)
-        kL_T, Dl_T, a_e = packing.liquid_side(T_L, solv.NaOH_M, uL, pk)
+        kL_T, Dl_T, a_e, _ = packing.liquid_side(T_L, solv.NaOH_M, uL, pk, model)
         H_cc_T = solvent.henry_cc_CO2(T_L, fresh_ions)
         K1, K2, Kw = solvent.carbonate_constants(T_L)
         ystar_coeff = H_cc_T * 1000.0 * Kw**2 / (K1 * K2 * c_tot)  # y* = coeff·[CO3]/[OH]²
@@ -257,18 +243,25 @@ def simulate_absorber(
 
     top_liquid = liquid(y_out, y_out)  # fresh solvent at the top (liquid inlet)
     warnings_pre = []
-    if pk.kind == "structured":
-        warnings_pre.append(
-            "structured packing: mass transfer uses the legacy particle correlations "
-            "(not validated; Rocha–Bravo–Fair or Billet–Schultes pending, audit §8)"
-        )
     F_factor = uG * math.sqrt(rho_g)
-    if pk.kind == "random" and F_factor > RANDOM_PACKING_F_MAX:
+    uL_m3_m2h = uL * 3600.0
+    if uG >= v_flood:
         warnings_pre.append(
-            f"gas F-factor {F_factor:.2f} Pa^0.5 above the typical capacity of random packings "
-            f"(~{RANDOM_PACKING_F_MAX:g} Pa^0.5): the legacy flooding correlation likely "
-            "overestimates capacity (audit §8)"
+            f"gas velocity {uG:.2f} m/s at or above flooding ({v_flood:.2f} m/s): column inoperable"
         )
+    elif uG > v_loading:
+        warnings_pre.append(
+            f"gas velocity {uG:.2f} m/s above the loading point ({v_loading:.2f} m/s): mass "
+            "transfer uses below-loading equations (Billet & Schultes eqs. 14–16 not applied)"
+        )
+    if model == "billet_schultes":
+        ul_lo, ul_hi = packing.BS_MASS_TRANSFER_UL_RANGE_m3_m2h
+        if F_factor > packing.BS_MASS_TRANSFER_F_MAX or not ul_lo <= uL_m3_m2h <= ul_hi:
+            warnings_pre.append(
+                f"outside the Billet & Schultes mass-transfer database: F = {F_factor:.2f} Pa^0.5 "
+                f"(≤ {packing.BS_MASS_TRANSFER_F_MAX}), u_L = {uL_m3_m2h:.1f} m3/(m2·h) "
+                f"({ul_lo}–{ul_hi})"
+            )
     z_vals, y_vals = prof["z"], prof["y"]
     OH_vals = prof["OH"]
     x_vals = [G_mol_s * (yv - y_out) / max(L_mol_s, 1e-12) for yv in y_vals]
@@ -305,7 +298,7 @@ def simulate_absorber(
 
     height_m = z_end
 
-    dpdz = packing.pressure_drop_ergun_Pa_m(props["rho_g"], props["mu_g"], uG, pk)
+    dpdz = packing.bs_pressure_drop_Pa_m(uG, uL, rho_g, mu_g, h_L, h_L_S, D_col, pk)
     deltaP = dpdz * height_m
     blower_W = deltaP * Qg_m3_s / max(spec.blower_eff, 1e-12)
     # the pump lifts the solvent to the distributor above the bed (audit §10, errata E-010)
@@ -338,8 +331,8 @@ def simulate_absorber(
         L_mol_s=L_mol_s,
         rho_g_kg_m3=rho_g,
         rho_l_kg_m3=rho_l,
-        mu_g_Pa_s=props["mu_g"],
-        mu_l_Pa_s=props["mu_l"],
+        mu_g_Pa_s=mu_g,
+        mu_l_Pa_s=mu_l,
         kG_m_s=kG,
         kL_m_s=top_liquid[2],
         KGa_1_s=prof["KGa"][-1],  # liquid inlet (top, fresh solvent)
@@ -349,17 +342,16 @@ def simulate_absorber(
         E=prof["E"][-1],
         H_cc_CO2=top_liquid[4],
         k1_pseudo_1_s=kinetics.k2_pohorecki_moniuk_m3_mol_s(T_L_in, solv.NaOH_M) * OH_mol_m3,
-        D_g_m2_s=props["Dg"],
+        D_g_m2_s=gas.diffusivity_CO2_in_air_m2_s(T_K, P_Pa),
         D_l_m2_s=top_liquid[3],
-        ReG=props["ReG"],
-        ReL=props["ReL"],
-        ScG=props["ScG"],
-        ScL=props["ScL"],
         uG_m_s=uG,
         uL_m_s=uL,
         D_col_m=D_col,
         v_flood_m_s=v_flood,
+        v_loading_m_s=v_loading,
         v_oper_m_s=v_oper,
+        F_factor_Pa05=F_factor,
+        holdup_L=h_L,
         flood_fraction_actual=uG / max(v_flood, 1e-12),
         feasible_hydraulically=uG <= spec.flood_fraction * v_flood,
         height_m=height_m,

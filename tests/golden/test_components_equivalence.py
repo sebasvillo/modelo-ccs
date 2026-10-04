@@ -1,5 +1,8 @@
 """Component-level safety net: each ported function equals its legacy twin bit-for-bit.
 
+Packing correlations were replaced by Billet & Schultes (1999) in E-016/E-017 and their
+legacy equivalence tests were retired (tests/test_packing.py covers the new model).
+
 Unlike the end-to-end equivalence tests, these keep holding while physics fixes land
 elsewhere. When a fix changes one of these functions, its test here is replaced by a test
 tied to the errata entry (docs/errata.md).
@@ -12,35 +15,19 @@ import pandas as pd
 import pytest
 from legacy_cells import CELL_FIELDS, load_notebook_state
 
-from ccs_predesign import cell, gas, kinetics, packing, solvent, tea
+from ccs_predesign import cell, gas, kinetics, solvent, tea
 from ccs_predesign.models import CellResult, CellSpec, TEASpec
 from ccs_predesign.optimize import LEGACY_WEIGHTS, weighted_scores
 
 T_K = [283.15, 298.15, 318.15, 333.15]
 P_PA = [0.9e5, 1.01e5, 1.5e5]
 NAOH_M = [0.1, 1.5, 4.0]
-PACKING_NAMES = list(packing.PACKINGS)
 COMP = {"CO2": 0.2, "O2": 0.03, "N2": 0.69, "H2O": 0.08}
 
 
 @pytest.fixture(scope="module")
 def ns():
     return load_notebook_state()
-
-
-def legacy_packing(ns, name):
-    return ns["PACKINGS"][name]
-
-
-def test_packing_database(ns):
-    assert set(ns["PACKINGS"]) == set(packing.PACKINGS)
-    for name, old in ns["PACKINGS"].items():
-        new = packing.PACKINGS[name]
-        assert new.a_spec_m2_m3 == old["a_spec_m2m3"]
-        assert new.void_fraction == old["void_fraction"]
-        assert new.dp_eq_m == old["dp_eq_m"]
-        assert new.wetting_ref_uL_m_s == old["wetting_ref_uLm_s"]
-        assert new.flood_coeff == old["flood_coeff"]
 
 
 @pytest.mark.parametrize(("T", "P"), list(itertools.product(T_K, P_PA)))
@@ -66,46 +53,6 @@ def test_solvent_properties(ns, T, C):
 @pytest.mark.parametrize("Ha", [1e-6, 0.3, 2.0, 31.3, 49.9, 50.0, 400.0])
 def test_enhancement_factor(ns, Ha):
     assert kinetics.enhancement_factor(Ha) == ns["enhancement_factor_ha"](Ha)
-
-
-@pytest.mark.parametrize("name", PACKING_NAMES)
-def test_packing_correlations(ns, name):
-    old_pk, new_pk = legacy_packing(ns, name), packing.PACKINGS[name]
-    for Re, Sc in itertools.product([1.0, 150.0, 2.0e5], [0.7, 1.2, 500.0]):
-        assert packing.sherwood_gas(Re, Sc) == ns["sherwood_gas"](Re, Sc)
-        assert packing.sherwood_liquid(Re, Sc) == ns["sherwood_liquid"](Re, Sc)
-    for uL in [1e-5, 1e-3, 0.05]:
-        assert packing.wetting_fraction(uL, new_pk) == ns["wetting_fraction"](uL, old_pk)
-    for rho_g, mu_g, uG in [(1.1, 1.9e-5, 1.5), (1.3, 2.0e-5, 53.8)]:
-        assert packing.pressure_drop_ergun_Pa_m(rho_g, mu_g, uG, new_pk) == ns[
-            "pressure_drop_Ergun_per_m"
-        ](rho_g, mu_g, uG, old_pk)
-        assert packing.flooding_velocity_m_s(rho_g, 1030.0, new_pk) == ns[
-            "flooding_velocity_simple"
-        ](rho_g, 1030.0, old_pk)
-        for Q in [5e-5, 53.8]:
-            assert packing.column_diameter_m(Q, rho_g, 1030.0, new_pk, 0.6) == ns[
-                "choose_diameter"
-            ](Q, rho_g, 1030.0, old_pk, flood_frac=0.6)
-
-
-@pytest.mark.parametrize(
-    ("name", "T", "C", "E"),
-    [
-        (n, T, C, E)
-        for n in PACKING_NAMES
-        for T in (298.15, 318.15)
-        for C in (0.1, 1.5)
-        for E in (1.0, 31.3)
-    ],
-)
-def test_mass_transfer_coefficients(ns, name, T, C, E):
-    """Legacy passed flows over A_ref = 1 m2, i.e. velocities numerically equal to the flows."""
-    old = ns["kL_kG_KGa"](T, 1.01e5, COMP, 53.8, 0.27, legacy_packing(ns, name), C, E=E)
-    new = packing.mass_transfer_coefficients(
-        T, 1.01e5, COMP, 53.8, 0.27, packing.PACKINGS[name], C, 0.001, E=E
-    )
-    assert new == old
 
 
 @pytest.mark.parametrize(

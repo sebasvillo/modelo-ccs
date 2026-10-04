@@ -13,7 +13,9 @@ LG = [0.004, 0.02, 0.06]
 
 @pytest.fixture(scope="module")
 def structured_points():
-    return evaluate_grid(CaseInput(absorber=AbsorberSpec(packing_name="structured_250Y")), NAOH, LG)
+    return evaluate_grid(
+        CaseInput(absorber=AbsorberSpec(packing_name="ralu_pak_metal_yc250")), NAOH, LG
+    )
 
 
 def test_best_design_reaches_the_target(structured_points):

@@ -17,15 +17,18 @@ class _Frozen(BaseModel):
 
 
 class Packing(_Frozen):
+    """Packing geometry and Billet & Schultes (1999) constants (their Table 2)."""
+
+    kind: Literal["random", "structured"]
+    material: Literal["metal", "plastic", "ceramic"]
+    nominal_size_m: float | None = Field(None, gt=0, description="nominal size (Onda only)")
     a_spec_m2_m3: float = Field(gt=0, description="specific surface area")
     void_fraction: float = Field(gt=0, lt=1)
-    dp_eq_m: float = Field(gt=0, description="equivalent particle (nominal) diameter")
-    wetting_ref_uL_m_s: float = Field(gt=0, description="LEGACY wetting closure parameter")
-    flood_coeff: float = Field(gt=0)
-    kind: Literal["random", "structured"] = "random"
-    sigma_c_N_m: float | None = Field(
-        None, gt=0, description="critical surface tension of the packing material (Onda)"
-    )
+    C_S: float = Field(gt=0, description="loading-point constant")
+    C_Fl: float = Field(gt=0, description="flooding-point constant")
+    C_P0: float = Field(gt=0, description="pressure-drop constant")
+    C_L: float = Field(gt=0, description="liquid-side mass-transfer constant")
+    C_V: float = Field(gt=0, description="gas-side mass-transfer constant")
 
 
 class FlueGas(_Frozen):
@@ -47,7 +50,8 @@ def _legacy_LG_grid() -> tuple[float, ...]:
 
 class AbsorberSpec(_Frozen):
     capture_target: float = Field(0.90, gt=0, lt=1)
-    packing_name: str = "pall_ring_25mm"
+    packing_name: str = "pall_ring_metal_25mm"
+    mass_transfer_model: Literal["billet_schultes", "onda"] = "billet_schultes"
     max_height_m: float = Field(30.0, gt=0, le=100.0)
     dz_m: float = Field(0.02, ge=0.005, le=1.0, description="integration step")
     flood_fraction: float = Field(0.60, gt=0, lt=1)
@@ -159,15 +163,14 @@ class AbsorberResult(_Frozen):
     k1_pseudo_1_s: float
     D_g_m2_s: float
     D_l_m2_s: float
-    ReG: float
-    ReL: float
-    ScG: float
-    ScL: float
     uG_m_s: float
     uL_m_s: float
     D_col_m: float
-    v_flood_m_s: float
+    v_flood_m_s: float = Field(description="gas velocity at the flooding point (Billet & Schultes)")
+    v_loading_m_s: float = Field(description="gas velocity at the loading point")
     v_oper_m_s: float
+    F_factor_Pa05: float = Field(description="gas load factor u_G·√ρ_G")
+    holdup_L: float = Field(description="liquid holdup at the gas inlet [m3/m3]")
     flood_fraction_actual: float = Field(description="uG / v_flood")
     feasible_hydraulically: bool = Field(description="uG <= flood_fraction · v_flood")
     height_m: float
