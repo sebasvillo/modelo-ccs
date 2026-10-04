@@ -56,3 +56,8 @@ Three lines per working session: what was done, what was found, what comes next.
 - FastAPI app (`api/main.py`): `/health`, `/v1/equations`, `/v1/case`; inputs validated by the pydantic models with size limits; not deployed.
 - `report.py` returns 21 headline outputs, each with its equation id and substituted values; a test re-evaluates every equation from those values (it caught two untruthful explanations, fixed with `absorber.height` and `absorber.capture`).
 - Next: deploy decision (free container + api.sebasvillo.com) and the website subpage; physics still waiting for packing/hydraulics/cell-cost sources.
+
+## 2026-10-03/04 · Session 12 · API live, sources from the bibliography (audit §8, §12)
+- API deployed on Render (render.yaml + Dockerfile), live at api.sebasvillo.com; CI builds and smoke-tests the image.
+- E-015 (#23) cell costs from Zhang et al. 2024 SI Note 8 (LCOC ≈ 450 USD/t); E-016/E-017 (#24) Billet & Schultes 1999 mass transfer and hydraulics with their packing table, recommended by Flagiello 2021; E-018 (#25) inert-gas balance with capture on molar flows; E-019 (#26) Mellapak 250Y via Hanley & Chen 2012 (original exponents, not the review's).
+- #27 docs/validation.md + tests: Mellapak area +26 % vs Ellebracht 2023, Zhang cell point < 1 %, Pall flooding in catalogue range. Next: TPMS/bench data, parallel trains, water evaporation, then the crash course.
