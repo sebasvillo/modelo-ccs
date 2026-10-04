@@ -2077,14 +2077,14 @@
     "n_rep": {
       "key": "n_rep",
       "latex": "n_{rep}",
-      "unit": "años",
+      "unit": "y",
       "es": "intervalo de reemplazo del stack",
       "en": "stack replacement interval"
     },
     "f_om": {
       "key": "f_om",
       "latex": "f_{O\\&M}",
-      "unit": "1/año",
+      "unit": "1/y",
       "es": "O&M anual de la celda (fracción del stack)",
       "en": "annual cell O&M (fraction of stack)"
     },
@@ -2112,14 +2112,14 @@
     "n": {
       "key": "n",
       "latex": "n",
-      "unit": "años",
+      "unit": "y",
       "es": "vida del proyecto",
       "en": "project life"
     },
     "CRF": {
       "key": "CRF",
       "latex": "CRF",
-      "unit": "1/año",
+      "unit": "1/y",
       "es": "factor de recuperación de capital",
       "en": "capital recovery factor"
     },
@@ -2133,21 +2133,21 @@
     "OPEX": {
       "key": "OPEX",
       "latex": "OPEX",
-      "unit": "USD/año",
+      "unit": "USD/y",
       "es": "costo de operación anual",
       "en": "annual operating cost"
     },
     "m_CO2": {
       "key": "m_CO2",
       "latex": "\\dot m_{CO_2}",
-      "unit": "t/año",
+      "unit": "t/y",
       "es": "CO₂ capturado por año",
       "en": "CO₂ captured per year"
     },
     "h_op": {
       "key": "h_op",
       "latex": "h_{op}",
-      "unit": "h/año",
+      "unit": "h/y",
       "es": "horas de operación por año",
       "en": "operating hours per year"
     },
